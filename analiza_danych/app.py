@@ -25,9 +25,16 @@ app = FastAPI()
 stripe.api_key = os.getenv("STRIPE_API_KEY")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+origins = [
+    "http://localhost:3000",
+    FRONTEND_URL,
+    "https://analiza-danych-python.vercel.app",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
