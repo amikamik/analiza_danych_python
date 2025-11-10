@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 // === Endpointy na backendzie ===
 // ZMIANA: Przygotowanie do wdrożenia. Ten adres zostanie podmieniony na publiczny URL z Render.
-const API_BASE_URL = (process.env.REACT_APP_API_URL || "http://localhost:8000") + "/api";
+const API_BASE_URL = (process.env.REACT_APP_API_URL || "https://analiza-danych.onrender.com") + "/api";
 const PREVIEW_URL = `${API_BASE_URL}/parse-preview`;
 const PAYMENT_URL = `${API_BASE_URL}/create-payment-session`;
 const REPORT_URL = `${API_BASE_URL}/generate-report`;
