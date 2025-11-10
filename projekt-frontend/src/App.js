@@ -64,7 +64,7 @@ function App() {
       }
     };
 
-  }, []);
+  }, [reportUrl]);
 
   const fetchReport = async (sessionId, types, strategy) => {
     setIsLoading(true);
