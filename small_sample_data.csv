@@ -1,0 +1,101 @@
+ID,Wiek,Płeć,Miasto,Liczba_Dzieci,Przychód,Czy_Aktywny,Data_Rejestracji,Opis
+1,37,K,Katowice,4,7494.53,True,2021-03-20,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+2,55,M,Warszawa,4,7728.42,False,2020-04-10,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+3,34,K,Warszawa,3,5413.22,True,2021-11-09,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+4,20,M,nan,2,7166.76,False,2021-11-01,nan
+5,45,K,Poznań,4,7397.74,True,2023-04-03,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+6,31,K,Kraków,4,5434.8,False,2022-10-03,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+7,29,M,Katowice,4,5438.28,True,2020-07-09,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+8,18,M,nan,4,6753.65,True,2020-01-23,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+9,26,M,Poznań,3,3541.44,False,2021-11-10,nan
+10,39,M,Poznań,1,2350.58,True,2020-09-25,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+11,46,K,Wrocław,2,7023.99,False,2022-05-14,
+12,44,M,Warszawa,1,4037.0,True,2020-02-22,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+13,41,M,nan,1,2131.51,True,2021-07-12,
+14,31,K,nan,1,3115.38,False,2022-06-10,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+15,42,M,nan,3,3993.42,True,2020-06-10,
+16,21,K,Warszawa,3,5481.7,False,2020-06-02,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+17,18,M,nan,0,4887.91,False,2021-04-26,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+18,26,M,Warszawa,4,8855.17,True,2021-04-29,
+19,24,K,Poznań,3,4882.9,True,2023-07-01,nan
+20,36,M,Warszawa,3,6520.96,True,2022-04-02,
+21,23,K,Wrocław,4,5382.53,True,2020-04-23,
+22,26,M,nan,0,3846.67,True,2021-05-27,"Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+23,19,M,nan,4,6060.71,False,2023-02-16,
+24,18,K,nan,2,5126.38,True,2022-09-21,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+25,51,M,Kraków,2,7450.15,True,2022-12-26,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+26,46,M,nan,1,11095.69,True,2021-06-15,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+27,40,M,Kraków,2,6361.01,True,2023-05-12,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+28,18,M,Kraków,0,5196.28,True,2020-07-06,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+29,41,K,Gdańsk,3,7488.24,True,2022-05-03,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+30,29,M,Warszawa,2,3620.62,False,2021-01-21,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+31,31,K,Gdańsk,4,4030.6,True,2021-08-25,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+32,22,K,Kraków,3,4287.99,False,2023-05-02,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+33,44,M,Gdańsk,1,5324.71,True,2021-07-16,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+34,27,K,Kraków,4,6129.78,True,2023-12-09,nan
+35,23,M,Poznań,4,8505.71,True,2022-11-17,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+36,23,M,nan,0,6817.96,True,2020-05-07,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+37,18,M,nan,1,5795.47,True,2022-06-11,"Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+38,31,K,Gdańsk,3,5966.83,True,2020-04-13,
+39,24,K,Katowice,4,8977.57,True,2020-08-27,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+40,37,K,Wrocław,0,8255.94,True,2022-01-02,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+41,38,M,nan,2,7259.07,True,2022-04-03,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+42,40,K,Poznań,0,8020.86,True,2022-09-06,"Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+43,26,K,Wrocław,1,3131.24,False,2021-03-15,
+44,27,M,Warszawa,2,4344.77,True,2023-12-10,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+45,37,K,nan,1,5910.63,True,2022-06-17,nan
+46,36,K,Katowice,2,6968.48,False,2022-04-14,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+47,47,M,Katowice,2,3873.25,True,2021-07-15,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+48,39,K,Poznań,4,2712.74,True,2022-02-12,
+49,39,M,nan,0,6904.93,True,2023-02-28,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+50,31,K,Kraków,3,3879.86,True,2022-05-25,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+51,27,M,Kraków,0,18942.37,True,2022-01-27,
+52,25,K,nan,4,4514.11,True,2021-05-26,
+53,34,M,Warszawa,4,2838.62,True,2022-03-01,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+54,25,K,Kraków,3,2791.49,True,2020-09-04,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+55,38,M,nan,1,2793.97,True,2021-08-15,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+56,48,M,Wrocław,4,5209.26,True,2020-08-31,nan
+57,30,K,Poznań,4,5860.09,True,2021-09-24,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+58,29,K,nan,1,2502.94,False,2020-07-13,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+59,37,M,Kraków,2,4301.26,True,2020-04-17,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+60,39,M,Warszawa,0,4955.63,True,2020-08-22,nan
+61,40,M,Kraków,1,7082.19,False,2022-03-05,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+62,42,M,nan,0,6644.44,True,2020-03-16,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+63,49,M,Wrocław,0,5925.64,True,2021-01-23,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+64,43,M,nan,4,6624.25,True,2021-06-26,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+65,40,K,Wrocław,4,8551.45,False,2020-01-29,"Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+66,42,K,Wrocław,0,7876.66,True,2022-10-25,
+67,25,M,Warszawa,3,9377.32,True,2021-11-03,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+68,33,M,Poznań,1,2282.5,False,2020-07-03,
+69,45,M,Warszawa,4,4811.57,False,2022-04-04,nan
+70,37,M,nan,0,6083.59,True,2023-03-05,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+71,19,K,Gdańsk,3,7687.46,True,2022-08-03,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+72,20,M,Warszawa,0,6177.14,True,2021-07-20,"Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+73,55,K,Wrocław,2,2197.15,False,2020-04-08,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+74,48,K,nan,4,4755.75,True,2020-02-10,
+75,18,M,nan,2,3864.42,False,2023-10-16,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+76,26,M,nan,1,3936.71,True,2022-12-21,
+77,45,M,nan,4,6079.02,True,2020-12-03,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+78,23,M,Kraków,1,7029.98,True,2023-04-15,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+79,18,M,Gdańsk,2,5543.05,False,2022-09-14,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+80,35,K,nan,0,2757.43,True,2022-09-17,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+81,52,K,Katowice,4,6026.6,False,2020-04-06,"Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+82,48,M,Warszawa,3,5432.71,True,2022-01-21,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+83,52,K,Wrocław,1,3893.13,True,2023-01-25,
+84,46,M,Warszawa,2,6601.31,False,2022-05-14,
+85,31,M,Warszawa,3,3714.0,True,2021-10-16,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+86,43,M,Wrocław,3,2280.41,True,2023-05-25,"Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+87,23,K,Kraków,1,6830.62,True,2022-07-10,Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+88,37,M,Warszawa,3,3477.97,True,2023-09-26,"Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+89,39,M,Katowice,4,8427.17,False,2021-07-23,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+90,41,M,Warszawa,1,7844.31,True,2021-10-23,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+91,48,K,nan,4,4856.23,True,2020-03-04,
+92,39,M,nan,2,5789.47,True,2022-12-31,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+93,38,K,nan,3,100.0,True,2023-10-20,nan
+94,36,K,Poznań,2,5637.88,True,2023-11-19,"Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+95,50,K,nan,3,3259.18,True,2020-03-15,nan
+96,27,M,Warszawa,3,7466.89,True,2022-03-11,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+97,30,M,Warszawa,1,9806.45,True,2022-01-29,"Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+98,35,M,nan,2,696.75,True,2020-03-23,"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+99,44,K,Poznań,0,8170.74,False,2022-11-05,nan
+100,24,M,nan,3,4126.03,True,2023-01-22,Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.

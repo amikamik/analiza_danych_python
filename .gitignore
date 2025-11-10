@@ -1,0 +1,15 @@
+# Pliki z sekretami i konfiguracją lokalną
+.env
+
+# Foldery środowisk wirtualnych
+venv/
+.venv/
+
+# Pliki generowane przez Python
+__pycache__/
+*.pyc
+
+# Pliki generowane przez frontend (React)
+/projekt-frontend/node_modules/
+/projekt-frontend/build/
+.DS_Store

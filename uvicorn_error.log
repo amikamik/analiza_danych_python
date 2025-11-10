@@ -1,0 +1,61 @@
+INFO:     Will watch for changes in these directories: ['C:\\Users\\hp\\Desktop\\olx-kategoryzator\\analiza_danych_python']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [20668] using WatchFiles
+ERROR:    Error loading ASGI app. Could not import module "app".
+WARNING:  WatchFiles detected changes in 'analiza_danych\app.py'. Reloading...
+ERROR:    Error loading ASGI app. Could not import module "app".
+WARNING:  WatchFiles detected changes in 'analiza_danych\app.py'. Reloading...
+ERROR:    Error loading ASGI app. Could not import module "app".
+WARNING:  WatchFiles detected changes in 'analiza_danych\app.py'. Reloading...
+WARNING:  WatchFiles detected changes in 'analiza_danych\app.py'. Reloading...
+Process SpawnProcess-4:
+Traceback (most recent call last):
+  File "C:\Python312\Lib\multiprocessing\process.py", line 314, in _bootstrap
+    self.run()
+  File "C:\Python312\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Python312\Lib\site-packages\uvicorn\_subprocess.py", line 73, in subprocess_started
+    sys.stdin = os.fdopen(stdin_fileno)  # pragma: full coverage
+                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen os>", line 1066, in fdopen
+  File "<frozen codecs>", line 309, in __init__
+KeyboardInterrupt
+ERROR:    Error loading ASGI app. Could not import module "app".
+WARNING:  WatchFiles detected changes in 'analiza_danych\app.py'. Reloading...
+ERROR:    Error loading ASGI app. Could not import module "app".
+WARNING:  WatchFiles detected changes in 'analiza_danych\app.py'. Reloading...
+ERROR:    Error loading ASGI app. Could not import module "app".
+WARNING:  WatchFiles detected changes in 'analiza_danych\app.py'. Reloading...
+ERROR:    Error loading ASGI app. Could not import module "app".
+WARNING:  WatchFiles detected changes in 'analiza_danych\app.py'. Reloading...
+ERROR:    Error loading ASGI app. Could not import module "app".
+WARNING:  WatchFiles detected changes in 'backup\app_2025-11-08_00-01-32.py'. Reloading...
+OSError: [WinError 233] Na drugim koñcu potoku nie ma ¿adnego procesu
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Python312\Scripts\uvicorn.exe\__main__.py", line 7, in <module>
+  File "C:\Python312\Lib\site-packages\click\core.py", line 1462, in __call__
+    return self.main(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\click\core.py", line 1383, in main
+    rv = self.invoke(ctx)
+         ^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\click\core.py", line 1246, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\click\core.py", line 814, in invoke
+    return callback(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\uvicorn\main.py", line 423, in main
+    run(
+  File "C:\Python312\Lib\site-packages\uvicorn\main.py", line 588, in run
+    ChangeReload(config, target=server.run, sockets=[sock]).run()
+  File "C:\Python312\Lib\site-packages\uvicorn\supervisors\basereload.py", line 60, in run
+    self.restart()
+  File "C:\Python312\Lib\site-packages\uvicorn\supervisors\basereload.py", line 92, in restart
+    os.kill(self.process.pid, signal.CTRL_C_EVENT)
+SystemError: <class 'OSError'> returned a result with an exception set
