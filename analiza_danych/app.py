@@ -18,17 +18,23 @@ import statsmodels.api as sm
 from statsmodels.stats.diagnostic import het_breuschpagan
 from dotenv import load_dotenv
 
+import uuid
+from typing import Optional
+
 # --- Konfiguracja ---
 load_dotenv()
 app = FastAPI()
 
+# Zabezpieczenie przed wyciekiem pamięci - prosty magazyn w pamięci
+session_storage = {}
+
 stripe.api_key = os.getenv("STRIPE_API_KEY")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+# Na sztywno ustawiamy poprawny URL frontendu, aby uniknąć problemów z konfiguracją na Render
+FRONTEND_URL = "https://analiza-danych-python.vercel.app"
 
 origins = [
     "http://localhost:3000",
     FRONTEND_URL,
-    "https://analiza-danych-python.vercel.app",
 ]
 
 app.add_middleware(
@@ -95,10 +101,18 @@ async def parse_preview(file: UploadFile = File(...)):
         return JSONResponse(status_code=400, content={"error": f"Błąd przetwarzania pliku CSV: {e}", "trace": traceback.format_exc()})
 
 @app.post("/api/create-payment-session")
-async def create_payment_session():
+async def create_payment_session(
+    file: UploadFile = File(...), 
+    variable_types_json: str = Form(...),
+    missing_data_strategy: str = Form(...)
+):
     try:
+        file_content = await file.read()
+        variable_types = json.loads(variable_types_json)
+
+        # Utwórz sesję płatności w Stripe
         session = stripe.checkout.Session.create(
-            payment_method_types=['blik'],
+            payment_method_types=['blik', 'p24'],
             line_items=[{
                 'price_data': {
                     'currency': 'pln',
@@ -110,12 +124,22 @@ async def create_payment_session():
                 'quantity': 1,
             }],
             mode='payment',
+            # Użyj poprawnego URL frontendu i przekaż ID sesji Stripe
             success_url=f"{FRONTEND_URL}/sukces?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{FRONTEND_URL}/anulowano",
         )
+        
+        # Zapisz dane w pamięci podręcznej, używając ID sesji Stripe jako klucza
+        session_storage[session.id] = {
+            "file_content": file_content,
+            "variable_types": variable_types,
+            "missing_data_strategy": missing_data_strategy
+        }
+
         return JSONResponse({'id': session.id, 'url': session.url})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Błąd Stripe: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd Stripe lub przetwarzania danych: {str(e)}")
 
 def handle_missing_data(df: pd.DataFrame, strategy: str):
     if strategy == 'none':
@@ -347,44 +371,55 @@ def run_academic_tests_and_build_table(df: pd.DataFrame, variable_types: dict, m
     return html_table
 
 @app.post("/api/generate-report", response_class=HTMLResponse)
-async def generate_report(
-    file: UploadFile = File(...), 
-    variable_types_json: str = Form(...),
-    missing_data_strategy: str = Form(...),
-    session_id: str = Form(...)
-):
+async def generate_report(session_id: Optional[str] = Body(None, embed=True)):
+    if not session_id:
+        raise HTTPException(status_code=400, detail="Brak ID sesji.")
+    
     if not stripe.api_key:
         raise HTTPException(status_code=500, detail="Klucz API Stripe nie jest skonfigurowany.")
+
     try:
+        # Weryfikacja płatności
         checkout_session = stripe.checkout.Session.retrieve(session_id)
         if checkout_session.payment_status != "paid":
             raise HTTPException(status_code=402, detail="Płatność nie została zakończona.")
     except Exception as e:
         raise HTTPException(status_code=402, detail=f"Nieprawidłowa sesja płatności: {e}")
 
-    file_content = await file.read()
-    variable_types = json.loads(variable_types_json)
-    
-    try:
-        df_original = pd.read_csv(io.BytesIO(file_content))
-    except Exception as e:
-        return HTMLResponse(content=f"<h1>Błąd</h1><p>Plik CSV jest uszkodzony lub nieprawidłowy. Błąd: {e}</p>", status_code=400)
+    # Pobranie danych z pamięci podręcznej
+    session_data = session_storage.get(session_id)
+    if not session_data:
+        raise HTTPException(status_code=404, detail="Nie znaleziono danych sesji. Być może sesja wygasła. Spróbuj ponownie.")
 
     try:
-        df, missing_data_info = handle_missing_data(df_original.copy(), missing_data_strategy)
-    except ValueError as e:
-        return HTMLResponse(content=f"<h1>Błąd Walidacji Danych</h1><p>{e}</p>", status_code=400)
+        file_content = session_data["file_content"]
+        variable_types = session_data["variable_types"]
+        missing_data_strategy = session_data["missing_data_strategy"]
+        
+        try:
+            df_original = pd.read_csv(io.BytesIO(file_content), encoding='utf-8')
+        except UnicodeDecodeError:
+            df_original = pd.read_csv(io.BytesIO(file_content), encoding='latin1')
+        except Exception as e:
+            return HTMLResponse(content=f"<h1>Błąd</h1><p>Plik CSV jest uszkodzony lub nieprawidłowy. Błąd: {e}</p>", status_code=400)
 
-    profile = ProfileReport(df, title="Część 1: Automatyczny Raport Opisowy (Rozszerzony)")
-    
-    # NAPRAWIONO: Usunięto niekompatybilny argument `inline=True`.
-    # Domyślne wywołanie `to_html()` generuje kompletny, samodzielny plik, który powinien działać.
-    report1_html = profile.to_html()
-    
-    report2_html = run_academic_tests_and_build_table(df.copy(), variable_types, missing_data_info) 
-    
-    final_html = report1_html + "<br><hr style='border: 2px solid #007bff;'>" + report2_html
-    return HTMLResponse(content=final_html)
+        try:
+            df, missing_data_info = handle_missing_data(df_original.copy(), missing_data_strategy)
+        except ValueError as e:
+            return HTMLResponse(content=f"<h1>Błąd Walidacji Danych</h1><p>{e}</p>", status_code=400)
+
+        profile = ProfileReport(df, title="Część 1: Automatyczny Raport Opisowy (Rozszerzony)")
+        report1_html = profile.to_html()
+        
+        report2_html = run_academic_tests_and_build_table(df.copy(), variable_types, missing_data_info) 
+        
+        final_html = report1_html + "<br><hr style='border: 2px solid #007bff;'>" + report2_html
+        return HTMLResponse(content=final_html)
+
+    finally:
+        # Upewnij się, że dane sesji są usuwane po użyciu, aby zwolnić pamięć
+        if session_id in session_storage:
+            del session_storage[session_id]
 
 @app.get("/api/test")
 def smoke_test():

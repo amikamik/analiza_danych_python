@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // === Endpointy na backendzie ===
-// ZMIANA: Przygotowanie do wdrożenia. Ten adres zostanie podmieniony na publiczny URL z Render.
 const API_BASE_URL = (process.env.REACT_APP_API_URL || "https://analiza-danych.onrender.com") + "/api";
 const PREVIEW_URL = `${API_BASE_URL}/parse-preview`;
 const PAYMENT_URL = `${API_BASE_URL}/create-payment-session`;
@@ -29,81 +28,70 @@ function App() {
   const [missingDataStrategy, setMissingDataStrategy] = useState('');
   const [missingDataInfo, setMissingDataInfo] = useState(null);
 
-  const [reportUrl, setReportUrl] = useState(""); // ZMIANA: Przechowujemy URL do raportu, a nie surowy HTML
+  const [reportUrl, setReportUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [paymentStatus, setPaymentStatus] = useState('idle');
 
-  // --- Efekt do obsługi powrotu ze Stripe ---
+  // --- NOWA, UPROSZCZONA LOGIKA POBIERANIA RAPORTU ---
+  const getFinalReport = useCallback(async (sessionId) => {
+    setIsLoading(true);
+    setError("");
+    setPaymentStatus('success'); // Ustawiamy status sukcesu, żeby pokazać ekran ładowania
+
+    try {
+      const response = await fetch(REPORT_URL, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Nieznany błąd serwera.' }));
+        throw new Error(errorData.detail || `Błąd serwera: ${response.status}`);
+      }
+
+      const reportHtml = await response.text();
+      const blob = new Blob([reportHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      setReportUrl(url);
+
+    } catch (err) {
+      setError(`Błąd podczas generowania raportu: ${err.message}`);
+      setPaymentStatus('idle'); // Resetuj status w razie błędu
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // --- EFEKT DO OBSŁUGI POWROTU ZE STRIPE ---
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const sessionId = query.get('session_id');
 
+    // Jeśli wracamy na stronę sukcesu z ID sesji, pobierz raport
     if (sessionId && window.location.pathname.includes('/sukces')) {
-      setPaymentStatus('success');
-      const fileDataUrl = localStorage.getItem('fileDataUrl');
-      const storedTypes = localStorage.getItem('variableTypes');
-      const storedStrategy = localStorage.getItem('missingDataStrategy');
-
-      if (fileDataUrl && storedTypes && storedStrategy) {
-        fetchReport(sessionId, JSON.parse(storedTypes), storedStrategy);
-      } else {
-        setError("Nie znaleziono danych sesji po powrocie z płatności. Proszę spróbować ponownie od początku, wgrywając plik.");
-      }
+      // Wyczyść parametry z URL, aby uniknąć ponownego uruchomienia
+      window.history.replaceState(null, '', '/sukces'); 
+      getFinalReport(sessionId);
     }
 
     if (window.location.pathname.includes('/anulowano')) {
       setPaymentStatus('cancelled');
       setError("Płatność została anulowana. Możesz spróbować ponownie.");
+      window.history.replaceState(null, '', '/');
     }
 
-    // Efekt czyszczący: zwalnia pamięć po obiekcie URL, gdy komponent jest niszczony
+    // Efekt czyszczący
     return () => {
       if (reportUrl) {
         URL.revokeObjectURL(reportUrl);
       }
     };
+  }, [getFinalReport, reportUrl]);
 
-  }, [reportUrl]);
-
-  const fetchReport = async (sessionId, types, strategy) => {
-    setIsLoading(true);
-    setError("");
-    
-    const fileBlob = await fetch(localStorage.getItem('fileDataUrl')).then(res => res.blob());
-    const file = new File([fileBlob], localStorage.getItem('fileName'), { type: fileBlob.type });
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("variable_types_json", JSON.stringify(types));
-    formData.append("missing_data_strategy", strategy);
-    formData.append("session_id", sessionId);
-
-    try {
-      const response = await fetch(REPORT_URL, { method: "POST", body: formData });
-      if (!response.ok) {
-        const errorText = await response.text();
-        try {
-            const err = JSON.parse(errorText);
-            throw new Error(err.detail || `Błąd serwera: ${response.status}`);
-        } catch (e) {
-            throw new Error(errorText || `Błąd serwera: ${response.status}`);
-        }
-      }
-      const reportHtml = await response.text();
-
-      // ZMIANA: Tworzymy wirtualny plik (Blob) i generujemy dla niego lokalny URL
-      const blob = new Blob([reportHtml], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      setReportUrl(url);
-
-      localStorage.clear();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // --- Wgrywanie pliku i pobieranie podglądu ---
   const handleFileChangeAndPreview = async (event) => {
@@ -114,17 +102,10 @@ function App() {
     setIsLoading(true);
     setError("");
     setPreviewData(null);
-    setReportUrl(""); // Resetujemy URL raportu
+    setReportUrl("");
     setPaymentStatus('idle');
     setMissingDataStrategy('');
     setMissingDataInfo(null);
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      localStorage.setItem('fileDataUrl', e.target.result);
-      localStorage.setItem('fileName', file.name);
-    };
-    reader.readAsDataURL(file);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -158,26 +139,30 @@ function App() {
     setVariableTypes(prevTypes => ({ ...prevTypes, [columnName]: newType }));
   };
 
-  // --- Inicjowanie płatności ---
+  // --- NOWA LOGIKA INICJOWANIA PŁATNOŚCI ---
   const handlePayment = async () => {
-    if (!originalFile || !variableTypes) {
-      setError("Brakuje pliku lub zdefiniowanych typów zmiennych.");
+    if (!originalFile || !variableTypes || (missingDataInfo?.has_missing_data && !missingDataStrategy)) {
+      setError("Brakuje pliku, zdefiniowanych typów zmiennych lub strategii dla braków danych.");
       return;
     }
     setIsLoading(true);
     setError("");
     setPaymentStatus('processing');
 
-    localStorage.setItem('variableTypes', JSON.stringify(variableTypes));
-    localStorage.setItem('missingDataStrategy', missingDataStrategy);
+    const formData = new FormData();
+    formData.append("file", originalFile);
+    formData.append("variable_types_json", JSON.stringify(variableTypes));
+    formData.append("missing_data_strategy", missingDataStrategy);
 
     try {
-      const response = await fetch(PAYMENT_URL, { method: "POST" });
+      // Wyślij plik i parametry, aby utworzyć sesję i zapisać dane na backendzie
+      const response = await fetch(PAYMENT_URL, { method: "POST", body: formData });
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.detail || "Błąd tworzenia sesji płatności.");
       }
       const session = await response.json();
+      // Przekieruj do Stripe
       window.location.href = session.url;
     } catch (err) {
       setError(err.message);
@@ -243,7 +228,7 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
   };
 
   const copyUrlToClipboard = () => {
-    navigator.clipboard.writeText('https://twoja-domena.com'); // Placeholder
+    navigator.clipboard.writeText('https://analiza-danych-python.vercel.app');
     alert('Adres strony skopiowany do schowka!');
   };
   return (
@@ -335,8 +320,8 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
             <li><strong>Część 2: Akademicka Analiza Wnioskująca:</strong> To serce naszego narzędzia. Automatycznie testujemy zależności pomiędzy wszystkimi wprowadzonymi zmiennymi, stosując rygorystyczne metody statystyczne:
                 <ul style={{paddingLeft: '20px', marginTop: '10px'}}>
                     <li><strong>Inteligentny dobór testów:</strong> System sam wybiera odpowiedni test (t-Studenta, chi-kwadrat, regresja itp.) dla Twoich par zmiennych.</li>
-                    <li><strong>Weryfikacja założeń i testy odporne:</strong> Sprawdzamy, czy spełnione są kluczowe założenia każdego testu. Jeśli nie, automatycznie stosujemy odpowiednie **testy odporne (nieparametryczne)**, aby Twoje wnioski były jak najbardziej wiarygodne.</li>
-                    <li><strong>Korekta na wielokrotne porównania:</strong> Aby uniknąć fałszywych odkryć, stosujemy **korektę Bonferroniego**, która dostosowuje poziom istotności statystycznej, dając Ci pewność, że widzisz tylko te wyniki, które mają najmocniejsze uzasadnienie.</li>
+                    <li><strong>Weryfikacja założeń i testy odporne:</strong> Sprawdzamy, czy spełnione są kluczowe założenia każdego testu. Jeśli nie, automatycznie stosujemy odpowiednie <strong>testy odporne (nieparametryczne)</strong>, aby Twoje wnioski były jak najbardziej wiarygodne.</li>
+                    <li><strong>Korekta na wielokrotne porównania:</strong> Aby uniknąć fałszywych odkryć, stosujemy <strong>korektę Bonferroniego</strong>, która dostosowuje poziom istotności statystycznej, dając Ci pewność, że widzisz tylko te wyniki, które mają najmocniejsze uzasadnienie.</li>
                 </ul>
             </li>
           </ul>
