@@ -234,8 +234,8 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
   return (
     <div style={styles.container}>
       <header style={styles.header}>
-        <h1 style={styles.h1}>Profesjonalna Analiza Danych za 8 zł (Oferta MVP)</h1>
-        <p style={styles.subtitle}>Nasze narzędzie automatycznie przeprowadza testy statystyczne pomiędzy wszystkimi wprowadzonymi zmiennymi, weryfikuje ich założenia i dostarcza gotowy do interpretacji raport. Przekształć surowe dane w konkretne wnioski w zaledwie kilka minut.</p>
+        <h1 style={styles.h1}>Eksploracyjna Analiza Danych za 8 zł (Wersja MVP)</h1>
+        <p style={styles.subtitle}>Nasze narzędzie służy do wstępnej eksploracji danych. Automatycznie przeprowadza podstawowe testy statystyczne między zmiennymi i generuje raport, który może być punktem wyjścia do dalszej, pogłębionej analizy. To narzędzie do szerokiego spojrzenia na dane, a nie wyciągania ostatecznych wniosków.</p>
       </header>
 
       {/* === NOWA SEKCJA Z KLUCZOWYMI INFORMACJAMI === */}
@@ -253,8 +253,8 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
           <p>W pełni <strong>interaktywny raport</strong> w formacie HTML, gotowy do zapisu i dalszej pracy.</p>
         </div>
         <div onClick={() => document.getElementById('kontakt').scrollIntoView({ behavior: 'smooth' })} style={{...styles.keyInfoCard, ...styles.clickableCard}}>
-          <h3 style={styles.h3}>100% Gwarancji Satysfakcji</h3>
-          <p>Jesteś naszym wczesnym użytkownikiem, dlatego Twoja satysfakcja jest absolutnym priorytetem. Jeśli raport nie spełni Twoich oczekiwań, wystąpi błąd lub po prostu nie będziesz zadowolony z wyniku – gwarantujemy pełny zwrot środków, bez zadawania pytań.</p>
+          <h3 style={styles.h3}>Gwarancja Satysfakcji</h3>
+          <p>Jesteśmy na wczesnym etapie rozwoju (MVP). Twoja satysfakcja jest dla nas kluczowa. Jeśli raport nie spełni Twoich oczekiwań, wystąpi błąd lub po prostu uznasz, że wynik nie jest dla Ciebie użyteczny – gwarantujemy pełny zwrot środków.</p>
         </div>
         <div style={styles.keyInfoCard}>
             <h3 style={styles.h3}>Zapisz naszą stronę na później</h3>
@@ -269,13 +269,13 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
       </section>
 
       <section style={styles.section}>
-        <h2 style={styles.h2}>Co zyskasz dzięki analizie?</h2>
+        <h2 style={styles.h2}>Do czego służy ta analiza?</h2>
         <p>Nasz raport w prosty sposób odpowie na fundamentalne pytania:</p>
         <ul style={styles.list}>
-            <li><strong>Które zależności są prawdziwe?</strong> Dowiesz się, które zmienne mają na siebie realny, statystycznie istotny wpływ, a które zależności są tylko pozorne.</li>
-            <li><strong>Jakie wnioski są wiarygodne?</strong> Otrzymasz informację, czy założenia dla każdego testu zostały spełnione, co oznacza, że możesz ufać jego wynikom.</li>
-            <li><strong>Jak oszczędzić czas?</strong> Zamiast ręcznie przeprowadzać dziesiątki testów, otrzymasz kompletny przegląd w kilka minut, co pozwoli Ci skupić się na interpretacji i dalszej pracy.</li>
-            <li><strong>Jak interpretować wyniki bez wiedzy statystycznej?</strong> Nasz raport zawiera specjalne podsumowanie, które podświetla tylko te zależności, które są najważniejsze i najbardziej wiarygodne. Nawet bez specjalistycznej wiedzy, od razu zobaczysz, które zmienne w Twoich danych mają na siebie realny, uzasadniony wpływ.</li>
+            <li><strong>Wstępna identyfikacja zależności:</strong> Narzędzie wskaże, które zmienne wykazują statystycznie istotne korelacje lub różnice. Pamiętaj, że korelacja nie oznacza przyczynowości.</li>
+            <li><strong>Ocena wiarygodności testów:</strong> Otrzymasz informację, czy założenia dla każdego testu zostały spełnione, co jest kluczowe dla prawidłowej interpretacji jego wyniku.</li>
+            <li><strong>Automatyzacja wstępnego etapu:</strong> Zamiast ręcznie przeprowadzać dziesiątki testów, otrzymasz ich przegląd w kilka minut. Pozwoli Ci to skupić się na dalszej, pogłębionej analizie i interpretacji.</li>
+            <li><strong>Podsumowanie dla szybkiego przeglądu:</strong> Raport zawiera podsumowanie, które wyróżnia statystycznie istotne wyniki. Pamiętaj jednak, że jest to jedynie sugestia, a każdy wynik wymaga indywidualnej interpretacji w kontekście Twoich danych i dziedziny.</li>
         </ul>
       </section>
 
@@ -300,29 +300,29 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
           <div style={styles.personaGrid}>
             <div style={styles.personaCard}>
               <h3 style={styles.h3}>Jesteś Studentem lub Naukowcem</h3>
-              <p>Piszesz pracę dyplomową i nie wiesz, od czego zacząć analizę? Zastanawiasz się, które testy będą odpowiednie i czy spełniasz ich rygorystyczne założenia? Nasz raport wskaże istotne zależności i sprawdzi założenia, dając Ci idealny punkt wyjścia do dalszych badań.</p>
+              <p>Piszesz pracę i szukasz punktu wyjścia do analizy? Narzędzie pomoże Ci wstępnie zidentyfikować istotne zależności i sprawdzić założenia testów, co może ukierunkować Twoje dalsze, szczegółowe badania.</p>
             </div>
             <div style={styles.personaCard}>
               <h3 style={styles.h3}>Jesteś Analitykiem lub Przedsiębiorcą</h3>
-              <p>Chcesz szybko sprawdzić, czy istnieją związki w Twoich danych o sprzedaży lub marketingu, zanim zainwestujesz w drogie oprogramowanie? W kilka minut otrzymaj wstępny audyt zależności i zobacz, gdzie warto szukać głębszych insightów biznesowych.</p>
+              <p>Chcesz szybko przeskanować dane w poszukiwaniu potencjalnych związków, zanim zdecydujesz się na głębszą analizę? Narzędzie dostarczy Ci wstępnego przeglądu, który może pomóc w formułowaniu hipotez do dalszej weryfikacji.</p>
             </div>
             <div style={styles.personaCard}>
               <h3 style={styles.h3}>Jesteś Entuzjastą Danych</h3>
-              <p>Po prostu lubisz analizować dane i odkrywać wzorce? Chcesz w praktyce zobaczyć, jak teoria statystyczna przekłada się na wyniki? Nasze narzędzie to świetna piaskownica do nauki i eksploracji, pokazująca, jak wygląda profesjonalny raport.</p>
+              <p>Chcesz zobaczyć, jak podstawowe testy statystyczne działają w praktyce na Twoim zbiorze danych? Nasze narzędzie to środowisko do nauki i eksploracji, które pokazuje wyniki analizy w przystępnej formie.</p>
             </div>
           </div>
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>Co dokładnie otrzymasz w cenie kawy?</h2>
-          <p>Twój kompleksowy raport składa się z dwóch kluczowych części:</p>
+          <h2 style={styles.h2}>Co zawiera raport?</h2>
+          <p>Twój raport składa się z dwóch części:</p>
           <ul style={styles.list}>
             <li><strong>Część 1: Rozszerzona Analiza Opisowa:</strong> Pełny profil każdej zmiennej – od rozkładów i kwantyli, przez statystyki opisowe, aż po interaktywne wykresy.</li>
-            <li><strong>Część 2: Akademicka Analiza Wnioskująca:</strong> To serce naszego narzędzia. Automatycznie testujemy zależności pomiędzy wszystkimi wprowadzonymi zmiennymi, stosując rygorystyczne metody statystyczne:
+            <li><strong>Część 2: Analiza Wnioskująca:</strong> To główna część analizy. Narzędzie automatycznie testuje zależności pomiędzy parami zmiennych, stosując podstawowe metody statystyczne:
                 <ul style={{paddingLeft: '20px', marginTop: '10px'}}>
                     <li><strong>Inteligentny dobór testów:</strong> System sam wybiera odpowiedni test (t-Studenta, chi-kwadrat, regresja itp.) dla Twoich par zmiennych.</li>
-                    <li><strong>Weryfikacja założeń i testy odporne:</strong> Sprawdzamy, czy spełnione są kluczowe założenia każdego testu. Jeśli nie, automatycznie stosujemy odpowiednie <strong>testy odporne (nieparametryczne)</strong>, aby Twoje wnioski były jak najbardziej wiarygodne.</li>
-                    <li><strong>Korekta na wielokrotne porównania:</strong> Aby uniknąć fałszywych odkryć, stosujemy <strong>korektę Bonferroniego</strong>, która dostosowuje poziom istotności statystycznej, dając Ci pewność, że widzisz tylko te wyniki, które mają najmocniejsze uzasadnienie.</li>
+                    <li><strong>Weryfikacja założeń i dobór testów:</strong> Sprawdzamy podstawowe założenia dla wybranych testów. W przypadku ich niespełnienia, w miarę możliwości stosujemy ich nieparametryczne odpowiedniki, aby zwiększyć rzetelność wyników.</li>
+                    <li><strong>Korekta na wielokrotne porównania:</strong> Aby ograniczyć ryzyko fałszywych odkryć wynikające z dużej liczby testów, stosujemy <strong>korektę Bonferroniego</strong>. Należy jednak pamiętać, że jest to metoda konserwatywna i może pomijać niektóre rzeczywiste zależności.</li>
                 </ul>
             </li>
           </ul>
@@ -330,7 +330,7 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
 
         <section style={styles.section}>
           <h2 style={styles.h2}>Transparentność: Dlaczego tylko 8 zł?</h2>
-          <p>Standardowa, wstępna analiza danych wykonana przez profesjonalnego analityka to koszt rzędu <strong>kilkuset złotych</strong>. Nasze narzędzie automatyzuje ten proces, ale jest obecnie w fazie <strong>MVP (Minimum Viable Product)</strong> – pierwszej, funkcjonalnej wersji produktu.</p>
+          <p>Wstępna, eksploracyjna analiza danych wykonana przez analityka to usługa wymagająca czasu i wiedzy. Nasze narzędzie automatyzuje ten proces, ale jest obecnie w fazie <strong>MVP (Minimum Viable Product)</strong> – pierwszej, funkcjonalnej wersji.</p>
           <p>Twoja opłata to nie tylko dostęp do potężnej analizy, ale także realne wsparcie w rozwoju tego projektu. Dzięki Twojemu zaangażowaniu możemy go dalej udoskonalać. W zamian za zaufanie na tym wczesnym etapie oferujemy Ci usługę w symbolicznej cenie.</p>
         </section>
 
