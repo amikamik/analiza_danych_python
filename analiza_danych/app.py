@@ -34,7 +34,11 @@ stripe.api_key = os.getenv("STRIPE_API_KEY")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://analiza-danych.tothemoonshine.pl",
+        "https://analiza-danych-python.vercel.app",
+        "https://analiza-danych.onrender.com" # Backend's own URL
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
