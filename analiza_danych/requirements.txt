@@ -9,3 +9,4 @@ statsmodels
 python-dotenv
 stripe
 python-multipart
+setuptools
