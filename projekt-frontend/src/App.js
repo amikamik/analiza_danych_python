@@ -354,7 +354,21 @@ const AnalysisFlow = ({ previewData, missingDataInfo, missingDataStrategy, setMi
 
     <div style={styles.analysisBox}>
       <h2 style={styles.h2}>Krok 2: Skonfiguruj swoją analizę</h2>
-      
+
+      {/* NEW SECTION FOR VARIABLE TYPE EXPLANATIONS */}
+      <div style={styles.infoBox}>
+        <h3 style={styles.h3}>Wybór Typów Zmiennych: Przewodnik</h3>
+        <p>Poprawne zdefiniowanie typów zmiennych jest kluczowe dla prawidłowej analizy statystycznej. Poniżej znajdziesz wyjaśnienie każdej kategorii:</p>
+        <ul style={styles.list}>
+          <li><strong>Pomiń (np. ID, Tekst):</strong> Zmienna zostanie zignorowana w analizie. Użyj tej opcji dla identyfikatorów, wolnego tekstu lub zmiennych, które nie są istotne dla Twojej analizy statystycznej.</li>
+          <li><strong>Ciągła (np. Wiek, Przychód):</strong> Zmienna numeryczna, która może przyjmować dowolną wartość w danym zakresie (np. liczby rzeczywiste). Reprezentuje pomiary, takie jak wiek, wzrost, waga, dochód.</li>
+          <li><strong>Binarna (2 grupy, np. Płeć):</strong> Zmienna kategoryczna, która może przyjmować tylko dwie wartości (np. 0/1, Tak/Nie, Mężczyzna/Kobieta).</li>
+          <li><strong>Nominalna (3+ grup, np. Miasto):</strong> Zmienna kategoryczna, która może przyjmować trzy lub więcej wartości, ale bez naturalnego porządku czy hierarchii (np. kolor oczu, narodowość, miasto zamieszkania).</li>
+          <li><strong>Porządkowa (kolejność, np. Wykształcenie):</strong> Zmienna kategoryczna, która może przyjmować trzy lub więcej wartości, ale z wyraźnym porządkiem lub hierarchią (np. poziom wykształcenia: podstawowe, średnie, wyższe; ocena: niska, średnia, wysoka).</li>
+        </ul>
+      </div>
+      {/* END NEW SECTION */}
+
       {missingDataInfo?.has_missing_data && (
         <div style={styles.missingDataPanel}>
           <h3 style={{ color: '#721c24', marginTop: 0 }}>Wykryto braki w danych!</h3>
@@ -456,6 +470,13 @@ const styles = {
     border: '1px solid #ffeeba',
     margin: '30px 0',
     textAlign: 'left',
+  },
+  infoBox: {
+    backgroundColor: '#e7f3fe', // A light blue
+    border: '1px solid #b3d4fc',
+    borderRadius: '8px',
+    padding: '20px',
+    margin: '20px 0',
   },
   analysisBox: { padding: '20px', border: '1px solid #ccc', borderRadius: '8px', marginTop: '20px' },
   missingDataPanel: { border: '2px solid #dc3545', padding: '15px', marginTop: '20px', borderRadius: '5px', backgroundColor: '#f8d7da' },
