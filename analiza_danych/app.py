@@ -9,7 +9,7 @@ import json
 import traceback
 import os
 import stripe
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Body
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Body, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from ydata_profiling import ProfileReport
@@ -29,21 +29,19 @@ app = FastAPI()
 session_storage = {}
 
 stripe.api_key = os.getenv("STRIPE_API_KEY")
-# Na sztywno ustawiamy poprawny URL frontendu, aby uniknąć problemów z konfiguracją na Render
-FRONTEND_URL = "https://analiza-danych-python.vercel.app"
-
-origins = [
-    "http://localhost:3000",
-    FRONTEND_URL,
-]
+# Umożliwia dostęp z localhost, domeny produkcyjnej oraz wszystkich domen testowych (preview) na Vercel
+allow_origin_regex = r"https?://(localhost:3000|analiza-danych-python.*\.vercel\.app)"
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Ten URL będzie używany tylko jako fallback, jeśli nagłówek Origin nie będzie dostępny
+FALLBACK_FRONTEND_URL = "https://analiza-danych-python.vercel.app"
 
 # --- Endpointy API ---
 
@@ -102,11 +100,18 @@ async def parse_preview(file: UploadFile = File(...)):
 
 @app.post("/api/create-payment-session")
 async def create_payment_session(
+    request: Request,
     file: UploadFile = File(...), 
     variable_types_json: str = Form(...),
     missing_data_strategy: str = Form(...)
 ):
     try:
+        # Dynamiczne określanie URL frontendu na podstawie nagłówka Origin
+        origin = request.headers.get('origin')
+        if not origin or "analiza-danych-python" not in origin:
+            # Fallback na stałą wartość, jeśli nagłówek Origin jest nieobecny lub nieprawidłowy
+            origin = FALLBACK_FRONTEND_URL
+
         file_content = await file.read()
         variable_types = json.loads(variable_types_json)
 
@@ -124,9 +129,9 @@ async def create_payment_session(
                 'quantity': 1,
             }],
             mode='payment',
-            # Użyj poprawnego URL frontendu i przekaż ID sesji Stripe
-            success_url=f"{FRONTEND_URL}/sukces?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{FRONTEND_URL}/anulowano",
+            # Użyj dynamicznego URL frontendu i przekaż ID sesji Stripe
+            success_url=f"{origin}/sukces?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{origin}/anulowano",
         )
         
         # Zapisz dane w pamięci podręcznej, używając ID sesji Stripe jako klucza
