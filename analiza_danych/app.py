@@ -29,12 +29,11 @@ app = FastAPI()
 session_storage = {}
 
 stripe.api_key = os.getenv("STRIPE_API_KEY")
-# Umożliwia dostęp z localhost, domeny produkcyjnej oraz wszystkich domen testowych (preview) na Vercel
-allow_origin_regex = r"https?://(localhost:3000|.*analiza-danych-python.*\.vercel\.app)"
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=allow_origin_regex,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
