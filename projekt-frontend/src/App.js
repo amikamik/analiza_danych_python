@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // === Endpointy na backendzie ===
 const API_BASE_URL = (process.env.REACT_APP_API_URL || "https://analiza-danych.onrender.com") + "/api";
