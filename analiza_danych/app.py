@@ -98,22 +98,24 @@ async def parse_preview(file: UploadFile = File(...)):
     except Exception as e:
         return JSONResponse(status_code=400, content={"error": f"Błąd przetwarzania pliku CSV: {e}", "trace": traceback.format_exc()})
 
-@app.post("/api/create-payment-session")
-async def create_payment_session(
+@app.post("/api/create-voluntary-payment-session")
+async def create_voluntary_payment_session(
     request: Request,
-    file: UploadFile = File(...), 
-    variable_types_json: str = Form(...),
-    missing_data_strategy: str = Form(...)
+    report_id: str = Body(..., embed=True),
+    amount: Optional[int] = Body(300, embed=True) # Domyślnie 3 PLN
 ):
-    try:
-        # Dynamiczne określanie URL frontendu na podstawie nagłówka Origin
-        origin = request.headers.get('origin')
-        if not origin or "analiza-danych-python" not in origin:
-            # Fallback na stałą wartość, jeśli nagłówek Origin jest nieobecny lub nieprawidłowy
-            origin = FALLBACK_FRONTEND_URL
+    if not stripe.api_key:
+        raise HTTPException(status_code=500, detail="Klucz API Stripe nie jest skonfigurowany.")
 
-        file_content = await file.read()
-        variable_types = json.loads(variable_types_json)
+    # Dynamiczne określanie URL frontendu na podstawie nagłówka Origin
+    origin = request.headers.get('origin')
+    if not origin or "analiza-danych-python" not in origin:
+        origin = FALLBACK_FRONTEND_URL
+
+    try:
+        # Sprawdź, czy report_id istnieje w session_storage
+        if report_id not in session_storage:
+            raise HTTPException(status_code=404, detail="Nie znaleziono raportu o podanym ID. Sesja mogła wygasnąć.")
 
         # Utwórz sesję płatności w Stripe
         session = stripe.checkout.Session.create(
@@ -122,25 +124,18 @@ async def create_payment_session(
                 'price_data': {
                     'currency': 'pln',
                     'product_data': {
-                        'name': 'Automatyczna Analiza Danych Statystycznych',
+                        'name': 'Wsparcie dla Automatycznej Analizy Danych Statystycznych (MVP)',
+                        'description': 'Dobrowolna wpłata za wygenerowany raport.'
                     },
-                    'unit_amount': 800,  # 8.00 PLN w groszach
+                    'unit_amount': amount,
                 },
                 'quantity': 1,
             }],
             mode='payment',
-            # Użyj dynamicznego URL frontendu i przekaż ID sesji Stripe
-            success_url=f"{origin}/sukces?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{origin}/anulowano",
+            success_url=f"{origin}/raport/{report_id}?payment_status=success",
+            cancel_url=f"{origin}/raport/{report_id}?payment_status=cancelled",
         )
         
-        # Zapisz dane w pamięci podręcznej, używając ID sesji Stripe jako klucza
-        session_storage[session.id] = {
-            "file_content": file_content,
-            "variable_types": variable_types,
-            "missing_data_strategy": missing_data_strategy
-        }
-
         return JSONResponse({'id': session.id, 'url': session.url})
     except Exception as e:
         traceback.print_exc()
@@ -382,43 +377,34 @@ def run_academic_tests_and_build_table(df: pd.DataFrame, variable_types: dict, m
 
     return html_table
 
-@app.post("/api/generate-report", response_class=HTMLResponse)
-async def generate_report(session_id: Optional[str] = Body(None, embed=True)):
-    if not session_id:
-        raise HTTPException(status_code=400, detail="Brak ID sesji.")
-    
-    if not stripe.api_key:
-        raise HTTPException(status_code=500, detail="Klucz API Stripe nie jest skonfigurowany.")
-
+@app.post("/api/generate-report")
+async def generate_report(
+    file: UploadFile = File(...),
+    variable_types_json: str = Form(...),
+    missing_data_strategy: str = Form(...)
+):
     try:
-        # Weryfikacja płatności
-        checkout_session = stripe.checkout.Session.retrieve(session_id)
-        if checkout_session.payment_status != "paid":
-            raise HTTPException(status_code=402, detail="Płatność nie została zakończona.")
-    except Exception as e:
-        raise HTTPException(status_code=402, detail=f"Nieprawidłowa sesja płatności: {e}")
-
-    # Pobranie danych z pamięci podręcznej
-    session_data = session_storage.get(session_id)
-    if not session_data:
-        raise HTTPException(status_code=404, detail="Nie znaleziono danych sesji. Być może sesja wygasła. Spróbuj ponownie.")
-
-    try:
-        file_content = session_data["file_content"]
-        variable_types = session_data["variable_types"]
-        missing_data_strategy = session_data["missing_data_strategy"]
+        file_content = await file.read()
+        variable_types = json.loads(variable_types_json)
         
+        report_id = str(uuid.uuid4())
+        session_storage[report_id] = {
+            "file_content": file_content,
+            "variable_types": variable_types,
+            "missing_data_strategy": missing_data_strategy
+        }
+
         try:
             df_original = pd.read_csv(io.BytesIO(file_content), encoding='utf-8')
         except UnicodeDecodeError:
             df_original = pd.read_csv(io.BytesIO(file_content), encoding='latin1')
         except Exception as e:
-            return HTMLResponse(content=f"<h1>Błąd</h1><p>Plik CSV jest uszkodzony lub nieprawidłowy. Błąd: {e}</p>", status_code=400)
+            raise HTTPException(status_code=400, detail=f"Plik CSV jest uszkodzony lub nieprawidłowy. Błąd: {e}")
 
         try:
             df, missing_data_info = handle_missing_data(df_original.copy(), missing_data_strategy)
         except ValueError as e:
-            return HTMLResponse(content=f"<h1>Błąd Walidacji Danych</h1><p>{e}</p>", status_code=400)
+            raise HTTPException(status_code=400, detail=f"Błąd Walidacji Danych: {e}")
 
         profile = ProfileReport(df, title="Część 1: Automatyczny Raport Opisowy (Rozszerzony)")
         report1_html = profile.to_html()
@@ -426,12 +412,14 @@ async def generate_report(session_id: Optional[str] = Body(None, embed=True)):
         report2_html = run_academic_tests_and_build_table(df.copy(), variable_types, missing_data_info) 
         
         final_html = report1_html + "<br><hr style='border: 2px solid #007bff;'>" + report2_html
-        return HTMLResponse(content=final_html)
+        
+        return JSONResponse(content={"report_html": final_html, "report_id": report_id})
 
-    finally:
-        # Upewnij się, że dane sesji są usuwane po użyciu, aby zwolnić pamięć
-        if session_id in session_storage:
-            del session_storage[session_id]
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Wewnętrzny błąd serwera podczas generowania raportu: {str(e)}")
 
 @app.get("/api/test")
 def smoke_test():

@@ -3,8 +3,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 // === Endpointy na backendzie ===
 const API_BASE_URL = (process.env.REACT_APP_API_URL || "https://analiza-danych.onrender.com") + "/api";
 const PREVIEW_URL = `${API_BASE_URL}/parse-preview`;
-const PAYMENT_URL = `${API_BASE_URL}/create-payment-session`;
-const REPORT_URL = `${API_BASE_URL}/generate-report`;
+const VOLUNTARY_PAYMENT_URL = `${API_BASE_URL}/create-voluntary-payment-session`;
+const GENERATE_REPORT_URL = `${API_BASE_URL}/generate-report`;
 
 // === Komponent do wyboru typu zmiennej ===
 function VariableTypeSelector({ columnName, onChange }) {
@@ -29,69 +29,24 @@ function App() {
   const [missingDataInfo, setMissingDataInfo] = useState(null);
 
   const [reportUrl, setReportUrl] = useState("");
+  const [currentReportId, setCurrentReportId] = useState(null); // Nowy stan dla ID raportu
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [paymentStatus, setPaymentStatus] = useState('idle');
+  const [voluntaryPaymentStatus, setVoluntaryPaymentStatus] = useState('idle'); // Nowy stan dla statusu dobrowolnej płatności
 
-  // --- NOWA, UPROSZCZONA LOGIKA POBIERANIA RAPORTU ---
-  const getFinalReport = useCallback(async (sessionId) => {
-    setIsLoading(true);
-    setError("");
-    setPaymentStatus('success'); // Ustawiamy status sukcesu, żeby pokazać ekran ładowania
-
-    try {
-      const response = await fetch(REPORT_URL, {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ session_id: sessionId }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Nieznany błąd serwera.' }));
-        throw new Error(errorData.detail || `Błąd serwera: ${response.status}`);
-      }
-
-      const reportHtml = await response.text();
-      const blob = new Blob([reportHtml], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      setReportUrl(url);
-
-    } catch (err) {
-      setError(`Błąd podczas generowania raportu: ${err.message}`);
-      setPaymentStatus('idle'); // Resetuj status w razie błędu
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // --- EFEKT DO OBSŁUGI POWROTU ZE STRIPE ---
+  // --- EFEKT DO OBSŁUGI POWROTU ZE STRIPE (dla dobrowolnej płatności) ---
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
-    const sessionId = query.get('session_id');
+    const paymentStatus = query.get('payment_status');
+    const reportIdFromUrl = query.get('report_id');
 
-    // Jeśli wracamy na stronę sukcesu z ID sesji, pobierz raport
-    if (sessionId && window.location.pathname.includes('/sukces')) {
-      // Wyczyść parametry z URL, aby uniknąć ponownego uruchomienia
-      window.history.replaceState(null, '', '/sukces'); 
-      getFinalReport(sessionId);
+    if (reportIdFromUrl && (paymentStatus === 'success' || paymentStatus === 'cancelled')) {
+      setCurrentReportId(reportIdFromUrl);
+      setVoluntaryPaymentStatus(paymentStatus);
+      // Wyczyść parametry z URL
+      window.history.replaceState(null, '', `/raport/${reportIdFromUrl}`);
     }
-
-    if (window.location.pathname.includes('/anulowano')) {
-      setPaymentStatus('cancelled');
-      setError("Płatność została anulowana. Możesz spróbować ponownie.");
-      window.history.replaceState(null, '', '/');
-    }
-
-    // Efekt czyszczący
-    return () => {
-      if (reportUrl) {
-        URL.revokeObjectURL(reportUrl);
-      }
-    };
-  }, [getFinalReport, reportUrl]);
-
+  }, []);
 
   // --- Wgrywanie pliku i pobieranie podglądu ---
   const handleFileChangeAndPreview = async (event) => {
@@ -103,9 +58,10 @@ function App() {
     setError("");
     setPreviewData(null);
     setReportUrl("");
-    setPaymentStatus('idle');
+    setCurrentReportId(null);
     setMissingDataStrategy('');
     setMissingDataInfo(null);
+    setVoluntaryPaymentStatus('idle');
 
     const formData = new FormData();
     formData.append("file", file);
@@ -139,15 +95,17 @@ function App() {
     setVariableTypes(prevTypes => ({ ...prevTypes, [columnName]: newType }));
   };
 
-  // --- NOWA LOGIKA INICJOWANIA PŁATNOŚCI ---
-  const handlePayment = async () => {
+  // --- Generowanie raportu (teraz bezpłatne) ---
+  const generateReport = async () => {
     if (!originalFile || !variableTypes || (missingDataInfo?.has_missing_data && !missingDataStrategy)) {
       setError("Brakuje pliku, zdefiniowanych typów zmiennych lub strategii dla braków danych.");
       return;
     }
     setIsLoading(true);
     setError("");
-    setPaymentStatus('processing');
+    setReportUrl("");
+    setCurrentReportId(null);
+    setVoluntaryPaymentStatus('idle');
 
     const formData = new FormData();
     formData.append("file", originalFile);
@@ -155,28 +113,57 @@ function App() {
     formData.append("missing_data_strategy", missingDataStrategy);
 
     try {
-      // Wyślij plik i parametry, aby utworzyć sesję i zapisać dane na backendzie
-      const response = await fetch(PAYMENT_URL, { method: "POST", body: formData });
+      const response = await fetch(GENERATE_REPORT_URL, { method: "POST", body: formData });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Nieznany błąd serwera.' }));
+        throw new Error(errorData.detail || `Błąd serwera: ${response.status}`);
+      }
+      const data = await response.json();
+      const blob = new Blob([data.report_html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      setReportUrl(url);
+      setCurrentReportId(data.report_id);
+
+    } catch (err) {
+      setError(`Błąd podczas generowania raportu: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // --- Obsługa dobrowolnej płatności po wygenerowaniu raportu ---
+  const handleVoluntaryPayment = async (amount = 300) => { // Domyślnie 300 groszy = 3 PLN
+    if (!currentReportId) {
+      setError("Brak ID raportu do powiązania z płatnością.");
+      return;
+    }
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(VOLUNTARY_PAYMENT_URL, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ report_id: currentReportId, amount: amount }),
+      });
+
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.detail || "Błąd tworzenia sesji płatności.");
       }
       const session = await response.json();
-      // Przekieruj do Stripe
-      window.location.href = session.url;
+      window.location.href = session.url; // Przekieruj do Stripe
     } catch (err) {
       setError(err.message);
       setIsLoading(false);
-      setPaymentStatus('idle');
     }
   };
 
   const isButtonDisabled = (missingDataInfo?.has_missing_data && !missingDataStrategy) || isLoading;
 
   // --- Renderowanie UI ---
-  if (paymentStatus === 'success' && isLoading) {
-    return <div style={{ padding: '30px', fontFamily: 'sans-serif', color: 'green', textAlign: 'center' }}><h2>Płatność udana! Trwa generowanie raportu...</h2><p>To może potrwać nawet kilka minut. Proszę nie zamykać okna.</p></div>;
-  }
   if (reportUrl) {
     return (
       <div style={{display: 'flex', flexDirection: 'column', height: '100vh'}}>
@@ -184,6 +171,24 @@ function App() {
           <a href={reportUrl} download="raport.html" style={{...styles.ctaButton, textDecoration: 'none'}}>
             Pobierz Raport (plik HTML)
           </a>
+          {currentReportId && (
+            <div style={styles.voluntaryPaymentBanner}>
+              <h3>Jesteś zadowolony z naszej analizy? Wesprzyj nas!</h3>
+              <p>To narzędzie jest w fazie MVP i udostępniamy je bezpłatnie. Korzystasz z niego jako <strong>pierwszy użytkownik</strong>. Jeśli raport okazał się dla Ciebie użyteczny, będziemy wdzięczni za dobrowolną wpłatę.</p>
+              <p>Sugerowana kwota to <strong>od 3 zł</strong> (Stripe pobiera ok. 1 zł prowizji za transakcję).</p>
+              {voluntaryPaymentStatus === 'success' && <p style={{color: 'green'}}>Dziękujemy za wsparcie!</p>}
+              {voluntaryPaymentStatus === 'cancelled' && <p style={{color: 'orange'}}>Płatność anulowana. Możesz spróbować ponownie.</p>}
+              <button onClick={() => handleVoluntaryPayment(300)} style={{...styles.ctaButton, backgroundColor: '#6772e5', marginRight: '10px'}}>
+                Wpłać 3 zł
+              </button>
+              <button onClick={() => handleVoluntaryPayment(500)} style={{...styles.ctaButton, backgroundColor: '#6772e5', marginRight: '10px'}}>
+                Wpłać 5 zł
+              </button>
+              <button onClick={() => handleVoluntaryPayment(1000)} style={{...styles.ctaButton, backgroundColor: '#6772e5'}}>
+                Wpłać 10 zł
+              </button>
+            </div>
+          )}
         </div>
         <iframe 
           src={reportUrl}
@@ -209,11 +214,10 @@ function App() {
       setMissingDataStrategy={setMissingDataStrategy}
       variableTypes={variableTypes}
       handleTypeChange={handleTypeChange}
-      handlePayment={handlePayment}
+      generateReport={generateReport} // Zmienione z handlePayment
       isButtonDisabled={isButtonDisabled}
       isLoading={isLoading}
       error={error}
-      paymentStatus={paymentStatus}
     />
   );
 }
@@ -234,7 +238,7 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
   return (
     <div style={styles.container}>
       <header style={styles.header}>
-        <h1 style={styles.h1}>Eksploracyjna Analiza Danych za 8 zł (Wersja MVP)</h1>
+        <h1 style={styles.h1}>Eksploracyjna Analiza Danych (Wersja MVP)</h1>
         <p style={styles.subtitle}>Nasze narzędzie służy do wstępnej eksploracji danych. Automatycznie przeprowadza podstawowe testy statystyczne między zmiennymi i generuje raport, który może być punktem wyjścia do dalszej, pogłębionej analizy. To narzędzie do szerokiego spojrzenia na dane, a nie wyciągania ostatecznych wniosków.</p>
       </header>
 
@@ -244,11 +248,10 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
           <h3 style={styles.h3}>Wymagany Format</h3>
           <p>Prześlij swoje dane w pliku <strong>.CSV</strong> rozdzielanym przecinkami.</p>
         </div>
-        <div style={styles.keyInfoCard}>
-          <h3 style={styles.h3}>Koszt Analizy</h3>
-          <p>Jednorazowa opłata w wysokości <strong>8 zł</strong> za pełny, dwuczęściowy raport.</p>
-        </div>
-        <div style={styles.keyInfoCard}>
+                  <div style={styles.keyInfoCard}>
+                    <h3 style={styles.h3}>Koszt Analizy</h3>
+                    <p>Analiza jest <strong>bezpłatna</strong>. Możesz testować za darmo. Będziemy wdzięczni za jakąkolwiek wpłatę po wygenerowaniu raportu, jeśli okaże się użyteczny.</p>
+                  </div>        <div style={styles.keyInfoCard}>
           <h3 style={styles.h3}>Co Otrzymasz?</h3>
           <p>W pełni <strong>interaktywny raport</strong> w formacie HTML, gotowy do zapisu i dalszej pracy.</p>
         </div>
@@ -262,8 +265,8 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
             <button onClick={copyUrlToClipboard} style={{...styles.ctaButton, fontSize: '1rem', padding: '10px 15px', marginTop: '10px'}}>Skopiuj Adres Strony</button>
         </div>
         <div style={styles.keyInfoCard}>
-            <h3 style={styles.h3}>Problem po opłacie?</h3>
-            <p>Jeśli raport się nie załaduje lub wystąpi błąd, napisz do nas. Gwarantujemy pomoc lub natychmiastowy zwrot środków.</p>
+            <h3 style={styles.h3}>Problem z raportem?</h3>
+            <p>Jeśli raport się nie załaduje lub wystąpi błąd, napisz do nas. Pomożemy lub zwrócimy wpłacone środki.</p>
             <button onClick={copyEmailToClipboard} style={{...styles.ctaButton, fontSize: '1rem', padding: '10px 15px', marginTop: '10px'}}>Skopiuj Adres E-mail</button>
         </div>
       </section>
@@ -334,9 +337,9 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
         </section>
 
         <section style={styles.section}>
-          <h2 style={styles.h2}>Transparentność: Dlaczego tylko 8 zł?</h2>
+          <h2 style={styles.h2}>Transparentność: Dlaczego bezpłatnie?</h2>
           <p>Wstępna, eksploracyjna analiza danych wykonana przez analityka to usługa wymagająca czasu i wiedzy. Nasze narzędzie automatyzuje ten proces, ale jest obecnie w fazie <strong>MVP (Minimum Viable Product)</strong> – pierwszej, funkcjonalnej wersji.</p>
-          <p>Twoja opłata to nie tylko dostęp do potężnej analizy, ale także realne wsparcie w rozwoju tego projektu. Dzięki Twojemu zaangażowaniu możemy go dalej udoskonalać. W zamian za zaufanie na tym wczesnym etapie oferujemy Ci usługę w symbolicznej cenie.</p>
+          <p>Udostępniamy je bezpłatnie, ponieważ Twoje zaangażowanie i opinie są dla nas bezcenne w dalszym rozwoju projektu. Jeśli raport okaże się dla Ciebie użyteczny, będziemy wdzięczni za dobrowolną wpłatę, która pomoże nam w utrzymaniu i udoskonalaniu narzędzia.</p>
         </section>
 
       </main>
@@ -345,7 +348,7 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
   );
 };
 
-const AnalysisFlow = ({ previewData, missingDataInfo, missingDataStrategy, setMissingDataStrategy, variableTypes, handleTypeChange, handlePayment, isButtonDisabled, isLoading, error, paymentStatus }) => (
+const AnalysisFlow = ({ previewData, missingDataInfo, missingDataStrategy, setMissingDataStrategy, variableTypes, handleTypeChange, generateReport, isButtonDisabled, isLoading, error }) => (
   <div style={styles.container}>
     <header style={styles.header}>
       <h1 style={styles.h1}>Konfiguracja Analizy</h1>
@@ -422,13 +425,12 @@ const AnalysisFlow = ({ previewData, missingDataInfo, missingDataStrategy, setMi
     </div>
 
     <div style={styles.analysisBox}>
-      <h2 style={styles.h2}>Krok 3: Wygeneruj raport (Koszt: 8.00 PLN)</h2>
-      <button onClick={handlePayment} style={isButtonDisabled ? styles.ctaButtonDisabled : styles.ctaButton} disabled={isButtonDisabled}>
-        {isLoading ? 'Przetwarzanie...' : 'Zapłać i Generuj Raport'}
+      <h2 style={styles.h2}>Krok 3: Wygeneruj raport</h2>
+      <button onClick={generateReport} style={isButtonDisabled ? styles.ctaButtonDisabled : styles.ctaButton} disabled={isButtonDisabled}>
+        {isLoading ? 'Przetwarzanie...' : 'Generuj Raport'}
       </button>
       {isButtonDisabled && missingDataInfo?.has_missing_data && !missingDataStrategy && <p style={{color: 'red', marginTop: '10px'}}>Proszę wybrać strategię obsługi brakujących danych.</p>}
       {error && <p style={{ color: 'red', marginTop: '15px' }}><strong>Błąd:</strong> {error}</p>}
-      {paymentStatus === 'cancelled' && <p style={{ color: 'orange' }}>Płatność anulowana.</p>}
     </div>
     <Footer />
   </div>
@@ -436,7 +438,7 @@ const AnalysisFlow = ({ previewData, missingDataInfo, missingDataStrategy, setMi
 
 const Footer = () => (
   <footer id="kontakt" style={styles.footer}>
-    <p>Masz pytania lub raport nie spełnił Twoich oczekiwań? Gwarantujemy zwrot środków w ciągu 3 dni. Napisz na: <strong>zwrotsrodkowanaliza@gmail.com</strong></p>
+    <p>Masz pytania lub raport nie spełnił Twoich oczekiwań? Napisz na: <strong>zwrotsrodkowanaliza@gmail.com</strong></p>
   </footer>
 );
 
@@ -484,6 +486,15 @@ const styles = {
   table: { width: '100%', borderCollapse: 'collapse', marginTop: '20px' },
   th: { padding: '12px', border: '1px solid #ddd', backgroundColor: '#f2f2f2', textAlign: 'left' },
   td: { padding: '12px', border: '1px solid #ddd', verticalAlign: 'top' },
+  voluntaryPaymentBanner: {
+    marginTop: '20px',
+    padding: '20px',
+    backgroundColor: '#e6ffe6', // Light green background
+    border: '1px solid #a3e9a4',
+    borderRadius: '8px',
+    textAlign: 'center',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+  },
 };
 
 export default App;
