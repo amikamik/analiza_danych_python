@@ -16,6 +16,7 @@ from ydata_profiling import ProfileReport
 from scipy import stats
 import statsmodels.api as sm
 from statsmodels.stats.diagnostic import het_breuschpagan
+from statsmodels.stats.multitest import multipletests
 from dotenv import load_dotenv
 
 import uuid
@@ -303,8 +304,28 @@ def run_academic_tests_and_build_table(df: pd.DataFrame, variable_types: dict, m
 
     all_results.sort(key=lambda x: (x["Zmienne"], x["is_robust"]))
     
-    num_tests = len(all_results)
-    bonferroni_threshold = 0.05 / num_tests if num_tests > 0 else 0.05
+    # Collect all valid p-values for multiple testing corrections
+    raw_p_values = [res["p-value"] for res in all_results if isinstance(res["p-value"], float) and res["p-value"] != float('inf')]
+    
+    # Bonferroni Correction
+    num_tests_bonferroni = len(raw_p_values)
+    bonferroni_threshold = 0.05 / num_tests_bonferroni if num_tests_bonferroni > 0 else 0.05
+
+    # Benjamini-Hochberg (FDR) Correction
+    fdr_significant_results = []
+    if raw_p_values:
+        reject_fdr, pvals_corrected_fdr, _, _ = multipletests(raw_p_values, alpha=0.05, method='fdr_bh')
+        
+        # Map corrected p-values back to results
+        fdr_idx = 0
+        for res in all_results:
+            if isinstance(res["p-value"], float) and res["p-value"] != float('inf'):
+                res["p-value-fdr"] = pvals_corrected_fdr[fdr_idx]
+                res["fdr_rejected"] = reject_fdr[fdr_idx]
+                fdr_idx += 1
+            else:
+                res["p-value-fdr"] = float('inf')
+                res["fdr_rejected"] = False
 
     header1 = "<h2>Część 2: Pełne Wyniki Testów Statystycznych</h2>"
     desc1 = f"<p>Poniższa tabela przedstawia pełne wyniki analizy zależności między zmiennymi. W przypadku niespełnienia założeń testu parametrycznego, w osobnym wierszu przedstawiono wynik jego nieparametrycznego (odpornego) odpowiednika. Wynik został podświetlony na czerwono, gdy test wykazał istotną statystycznie zależność (p < {bonferroni_threshold:.4f}) po zastosowaniu korekty Bonferroniego i w warunkach, które pozwalają uznać go za wiarygodny.</p>"
@@ -315,17 +336,17 @@ def run_academic_tests_and_build_table(df: pd.DataFrame, variable_types: dict, m
 
     html_table = header1 + missing_data_html + desc1 + "<table border='1' style='width:100%; border-collapse: collapse; text-align: left; font-size: 14px;'><thead><tr style='background-color: #f0f0f0;'><th>Zmienne</th><th>Typ Analizy</th><th>Użyty Test</th><th>p-value</th><th>Siła Efektu</th><th>Uwagi</th></tr></thead><tbody>"
     
-    significant_results = []
+    significant_bonferroni_results = []
     last_zmienne = None
     for i, res in enumerate(all_results):
-        is_significant_and_valid = False
+        is_significant_and_valid_bonferroni = False
         p_val = res.get("p-value", float('inf'))
         
         if (res.get("assumptions_met", False) and p_val < bonferroni_threshold):
-            is_significant_and_valid = True
-            significant_results.append(res)
+            is_significant_and_valid_bonferroni = True
+            significant_bonferroni_results.append(res)
         
-        style = "background-color: #ffcccc;" if is_significant_and_valid else ""
+        style = "background-color: #ffcccc;" if is_significant_and_valid_bonferroni else ""
         
         current_zmienne = res.get('Zmienne', '')
         if last_zmienne is not None and current_zmienne != last_zmienne:
@@ -336,42 +357,29 @@ def run_academic_tests_and_build_table(df: pd.DataFrame, variable_types: dict, m
         html_table += f"<tr style='{style}'><td>{res.get('Zmienne', 'N/A')}</td><td>{res.get('Typ Analizy', 'N/A')}</td><td>{res.get('Użyty Test', 'N/A')}</td><td>{p_val_str}</td><td>{res.get('Siła Efektu', 'N/A')}</td><td>{res.get('Uwagi', 'N/A')}</td></tr>"
     html_table += "</tbody></table>"
 
-    if significant_results:
-        header2 = "<h2>Podsumowanie: Istotne Wyniki po Korekcie Bonferroniego</h2>"
-        desc2 = f"<p>Poniższa tabela zawiera wyłącznie te zależności, które okazały się istotne statystycznie po zastosowaniu rygorystycznej korekty na wielokrotne porównania (p < {bonferroni_threshold:.4f}). Korekta Bonferroniego minimalizuje ryzyko fałszywych odkryć, dając większą pewność co do wiarygodności wyników. Wyniki te z największym prawdopodobieństwem wskazują na rzeczywistą, wartą dalszej analizy zależność między zmiennymi.</p>"
-        html_table += "<br>" + header2 + desc2 + "<table border='1' style='width:100%; border-collapse: collapse; text-align: left; font-size: 14px;'><thead><tr style='background-color: #e6ffec;'><th>Zmienne</th><th>Typ Analizy</th><th>Użyty Test</th><th>p-value</th><th>Siła Efektu</th><th>Uwagi</th></tr></thead><tbody>"
-        significant_results.sort(key=lambda x: x["p-value"])
-        for res in significant_results:
+    # Bonferroni Summary Table
+    if significant_bonferroni_results:
+        header2_bonferroni = "<h2>Podsumowanie: Istotne Wyniki po Korekcie Bonferroniego</h2>"
+        desc2_bonferroni = f"<p>Poniższa tabela zawiera wyłącznie te zależności, które okazały się istotne statystycznie po zastosowaniu rygorystycznej korekty na wielokrotne porównania (p < {bonferroni_threshold:.4f}). Korekta Bonferroniego minimalizuje ryzyko fałszywych odkryć, dając większą pewność co do wiarygodności wyników. Wyniki te z największym prawdopodobieństwem wskazują na rzeczywistą, wartą dalszej analizy zależność między zmiennymi.</p>"
+        html_table += "<br>" + header2_bonferroni + desc2_bonferroni + "<table border='1' style='width:100%; border-collapse: collapse; text-align: left; font-size: 14px;'><thead><tr style='background-color: #e6ffec;'><th>Zmienne</th><th>Typ Analizy</th><th>Użyty Test</th><th>p-value</th><th>Siła Efektu</th><th>Uwagi</th></tr></thead><tbody>"
+        significant_bonferroni_results.sort(key=lambda x: x["p-value"])
+        for res in significant_bonferroni_results:
             p_val_str = f"{res.get('p-value', 'N/A'):.4f}"
             html_table += f"<tr><td>{res.get('Zmienne', 'N/A')}</td><td>{res.get('Typ Analizy', 'N/A')}</td><td>{res.get('Użyty Test', 'N/A')}</td><td>{p_val_str}</td><td>{res.get('Siła Efektu', 'N/A')}</td><td>{res.get('Uwagi', 'N/A')}</td></tr>"
         html_table += "</tbody></table>"
 
-    # Sekcja z interpretacją i formularzem
-    interpretation_section = f"""
-    <div style='{info_box_style}'>
-        <h3>Jak Interpretować Wyniki i Co Dalej?</h3>
-        <p><strong>Korelacja to nie Kauzacja (Związek to nie Przyczynowość)</strong></p>
-        <p>Wyniki w tabeli wskazują na istnienie <strong>statystycznej zależności</strong> między zmiennymi. Oznacza to, że gdy wartość jednej zmiennej się zmienia, wartość drugiej również ma tendencję do zmiany w określony sposób. Należy jednak bezwzględnie pamiętać, że <strong>nie dowodzi to związku przyczynowo-skutkowego</strong>.</p>
-        <p>Prezentowane analizy są doskonałym punktem wyjścia do dalszej eksploracji i formułowania hipotez, ale nie stanowią ostatecznego dowodu na przyczynowość.</p>
-        
-        <h4>Chcesz zbadać te zależności głębiej?</h4>
-        <p>Jeśli chcesz zrozumieć, które czynniki mają realny wpływ na inne, przewidywać wartości lub odkryć bardziej złożone wzorce, konieczne jest zastosowanie zaawansowanych modeli statystycznych lub algorytmów sztucznej inteligencji.</p>
-        <p>Nasz zespół specjalizuje się w budowie takich rozwiązań. Skontaktuj się z nami, aby otrzymać niezobowiązującą wycenę dalszej analizy (koszt od 100 zł).</p>
-        
-        <form action="https://formspree.io/f/xzzypzyb" method="POST" style="margin-top: 15px;">
-            <div style="margin-bottom: 10px;">
-                <label for="email">Twój email:</label><br>
-                <input type="email" id="email" name="email" required style="width: 300px; padding: 5px;">
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label for="message">Wiadomość:</label><br>
-                <textarea id="message" name="message" required style="width: 100%; min-height: 80px; padding: 5px;"></textarea>
-            </div>
-            <button type="submit" style="padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Wyślij</button>
-        </form>
-    </div>
-    """
-    html_table += interpretation_section
+    # Benjamini-Hochberg (FDR) Summary Table
+    fdr_significant_results = [res for res in all_results if res.get("fdr_rejected", False) and res.get("assumptions_met", False)]
+    if fdr_significant_results:
+        header2_fdr = "<h2>Podsumowanie: Istotne Wyniki po Korekcie Benjamini-Hochberga (FDR)</h2>"
+        desc2_fdr = "<p>Poniższa tabela przedstawia zależności istotne statystycznie po zastosowaniu korekty Benjamini-Hochberga (FDR - False Discovery Rate). Ta metoda jest mniej konserwatywna niż Bonferroni i ma większą moc statystyczną, co oznacza, że może wykryć więcej rzeczywistych zależności, jednocześnie kontrolując odsetek fałszywych odkryć. Wyniki te są również warte dalszej uwagi.</p>"
+        html_table += "<br>" + header2_fdr + desc2_fdr + "<table border='1' style='width:100%; border-collapse: collapse; text-align: left; font-size: 14px;'><thead><tr style='background-color: #e6f7ff;'><th>Zmienne</th><th>Typ Analizy</th><th>Użyty Test</th><th>p-value (FDR)</th><th>Siła Efektu</th><th>Uwagi</th></tr></thead><tbody>"
+        fdr_significant_results.sort(key=lambda x: x["p-value-fdr"])
+        for res in fdr_significant_results:
+            p_val_fdr_str = f"{res.get('p-value-fdr', 'N/A'):.4f}"
+            html_table += f"<tr><td>{res.get('Zmienne', 'N/A')}</td><td>{res.get('Typ Analizy', 'N/A')}</td><td>{res.get('Użyty Test', 'N/A')}</td><td>{p_val_fdr_str}</td><td>{res.get('Siła Efektu', 'N/A')}</td><td>{res.get('Uwagi', 'N/A')}</td></tr>"
+        html_table += "</tbody></table>"
+
     return html_table
 
 @app.post("/api/generate-report", response_class=HTMLResponse)
