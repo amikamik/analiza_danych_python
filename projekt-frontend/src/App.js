@@ -279,6 +279,11 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
         </ul>
       </section>
 
+      <section style={styles.importantWarning}>
+        <h3 style={{ marginTop: 0, color: '#856404' }}>Ważna informacja o charakterze analizy</h3>
+        <p>Wyniki przedstawione w tym raporcie mają charakter wyłącznie eksploracyjny i poglądowy. Nie powinny być traktowane jako podstawa do podejmowania decyzji biznesowych, klinicznych, finansowych ani żadnych innych działań o wysokich konsekwencjach. Interpretacja wyników statystycznych wymaga specjalistycznej wiedzy i kontekstu dziedzinowego. W celu podjęcia wiążących decyzji, zalecamy konsultację z profesjonalnym analitykiem danych lub statystykiem.</p>
+      </section>
+
       <main>
         <section id="upload-section" style={styles.uploadSection}>
           <h2 style={styles.h2}>Rozpocznij w 3 prostych krokach</h2>
@@ -443,6 +448,15 @@ const styles = {
   list: { paddingLeft: '20px', lineHeight: '1.6' },
   guaranteeSection: { backgroundColor: '#ecf0f1', padding: '20px', borderRadius: '8px', textAlign: 'center' },
   footer: { textAlign: 'center', marginTop: '50px', paddingTop: '20px', borderTop: '1px solid #eee', color: '#7f8c8d', fontSize: '0.9rem' },
+  importantWarning: {
+    backgroundColor: '#fff3cd',
+    color: '#856404',
+    padding: '20px',
+    borderRadius: '8px',
+    border: '1px solid #ffeeba',
+    margin: '30px 0',
+    textAlign: 'left',
+  },
   analysisBox: { padding: '20px', border: '1px solid #ccc', borderRadius: '8px', marginTop: '20px' },
   missingDataPanel: { border: '2px solid #dc3545', padding: '15px', marginTop: '20px', borderRadius: '5px', backgroundColor: '#f8d7da' },
   warningBox: { padding: '10px', background: '#fffbe6', border: '1px solid #ffc107', borderRadius: '5px', margin: '15px 0' },
