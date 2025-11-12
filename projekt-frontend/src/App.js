@@ -253,8 +253,8 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
           <p>W pełni <strong>interaktywny raport</strong> w formacie HTML, gotowy do zapisu i dalszej pracy.</p>
         </div>
         <div onClick={() => document.getElementById('kontakt').scrollIntoView({ behavior: 'smooth' })} style={{...styles.keyInfoCard, ...styles.clickableCard}}>
-          <h3 style={styles.h3}>Gwarancja Satysfakcji</h3>
-          <p>Pełny zwrot środków w ciągu 3 dni. Masz pytania lub raport nie spełnił oczekiwań? Kliknij, aby zobaczyć kontakt.</p>
+          <h3 style={styles.h3}>100% Gwarancji Satysfakcji</h3>
+          <p>Jesteś naszym wczesnym użytkownikiem, dlatego Twoja satysfakcja jest absolutnym priorytetem. Jeśli raport nie spełni Twoich oczekiwań, wystąpi błąd lub po prostu nie będziesz zadowolony z wyniku – gwarantujemy pełny zwrot środków, bez zadawania pytań.</p>
         </div>
         <div style={styles.keyInfoCard}>
             <h3 style={styles.h3}>Zapisz naszą stronę na później</h3>
@@ -291,6 +291,7 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
             {isLoading ? 'Przetwarzanie...' : 'Rozpocznij Analizę - Wgraj Plik CSV'}
           </button>
           <input type="file" ref={fileInputRef} onChange={onFileChange} accept=".csv" style={{ display: 'none' }} />
+          {isLoading && <p style={{marginTop: '15px', color: '#555'}}>Trwa przesyłanie i wstępna analiza Twojego pliku. W zależności od jego rozmiaru może to potrwać nawet kilka minut. Prosimy o cierpliwość.</p>}
           {error && <p style={{ color: 'red', marginTop: '15px' }}><strong>Błąd:</strong> {error}</p>}
         </section>
 
