@@ -6,6 +6,15 @@ const PREVIEW_URL = `${API_BASE_URL}/parse-preview`;
 const VOLUNTARY_PAYMENT_URL = `${API_BASE_URL}/create-voluntary-payment-session`;
 const GENERATE_REPORT_URL = `${API_BASE_URL}/generate-report`;
 
+// === Funkcja pomocnicza do śledzenia zdarzeń GA ===
+const trackEvent = (eventName, params = {}) => {
+  if (window.gtag) {
+    window.gtag('event', eventName, params);
+  } else {
+    console.log(`GA Event (gtag not found): ${eventName}`, params);
+  }
+};
+
 // === Komponent do wyboru typu zmiennej ===
 function VariableTypeSelector({ columnName, onChange }) {
   return (
@@ -29,23 +38,28 @@ function App() {
   const [missingDataInfo, setMissingDataInfo] = useState(null);
 
   const [reportUrl, setReportUrl] = useState("");
-  const [currentReportId, setCurrentReportId] = useState(null); // Nowy stan dla ID raportu
+  const [currentReportId, setCurrentReportId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [voluntaryPaymentStatus, setVoluntaryPaymentStatus] = useState('idle');
-  const [customAmount, setCustomAmount] = useState('5'); // Stan dla dynamicznej kwoty, domyślnie 5 PLN
+  const [customAmount, setCustomAmount] = useState('5');
 
   // --- EFEKT DO OBSŁUGI POWROTU ZE STRIPE (dla dobrowolnej płatności) ---
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const paymentStatus = query.get('payment_status');
-    // Poprawka: Pobierz ID raportu ze ścieżki URL, np. z "/raport/uuid-goes-here"
     const reportIdFromUrl = window.location.pathname.split('/raport/')[1];
 
     if (reportIdFromUrl && (paymentStatus === 'success' || paymentStatus === 'cancelled')) {
       setCurrentReportId(reportIdFromUrl);
       setVoluntaryPaymentStatus(paymentStatus);
-      // Wyczyść parametry z URL, ale zachowaj ścieżkę
+      
+      if (paymentStatus === 'success') {
+        trackEvent('donation_success');
+      } else if (paymentStatus === 'cancelled') {
+        trackEvent('donation_cancelled');
+      }
+
       window.history.replaceState(null, '', `/raport/${reportIdFromUrl}`);
     }
   }, []);
@@ -75,6 +89,7 @@ function App() {
         throw new Error(err.error || `Błąd serwera: ${response.status}`);
       }
       const data = await response.json();
+      trackEvent('file_upload_success');
       setPreviewData(data);
       setMissingDataInfo(data.missing_data_info);
       
@@ -87,6 +102,7 @@ function App() {
       setVariableTypes(initialTypes);
 
     } catch (err) {
+      trackEvent('file_upload_failure', { error_message: err.message });
       setError(err.message);
     } finally {
       setIsLoading(false);
@@ -96,11 +112,19 @@ function App() {
   const handleTypeChange = (columnName, newType) => {
     setVariableTypes(prevTypes => ({ ...prevTypes, [columnName]: newType }));
   };
+  
+  const handleMissingDataChange = (strategy) => {
+    trackEvent('select_missing_data_strategy', { strategy: strategy });
+    setMissingDataStrategy(strategy);
+  };
 
   // --- Generowanie raportu (teraz bezpłatne) ---
   const generateReport = async () => {
+    trackEvent('generate_report_click');
     if (!originalFile || !variableTypes || (missingDataInfo?.has_missing_data && !missingDataStrategy)) {
-      setError("Brakuje pliku, zdefiniowanych typów zmiennych lub strategii dla braków danych.");
+      const errorMessage = "Brakuje pliku, zdefiniowanych typów zmiennych lub strategii dla braków danych.";
+      trackEvent('report_generation_failure', { error_message: errorMessage });
+      setError(errorMessage);
       return;
     }
     setIsLoading(true);
@@ -123,10 +147,12 @@ function App() {
       const data = await response.json();
       const blob = new Blob([data.report_html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
+      trackEvent('report_generation_success', { report_id: data.report_id });
       setReportUrl(url);
       setCurrentReportId(data.report_id);
 
     } catch (err) {
+      trackEvent('report_generation_failure', { error_message: err.message });
       setError(`Błąd podczas generowania raportu: ${err.message}`);
     } finally {
       setIsLoading(false);
@@ -142,12 +168,14 @@ function App() {
     }
     const amountInGroszy = Math.round(amountInPln * 100);
 
+    trackEvent('begin_donation', { currency: 'PLN', value: amountInPln });
+
     if (!currentReportId) {
       setError("Brak ID raportu do powiązania z płatnością.");
       return;
     }
     setIsLoading(true);
-    setError(""); // Wyczyszczenie poprzednich błędów przed próbą płatności
+    setError("");
 
     try {
       const response = await fetch(VOLUNTARY_PAYMENT_URL, {
@@ -163,8 +191,9 @@ function App() {
         throw new Error(err.detail || "Błąd tworzenia sesji płatności.");
       }
       const session = await response.json();
-      window.location.href = session.url; // Przekieruj do Stripe
+      window.location.href = session.url;
     } catch (err) {
+      trackEvent('donation_error', { error_message: err.message });
       setError(err.message);
       setIsLoading(false);
     }
@@ -177,7 +206,7 @@ function App() {
     return (
       <div style={{display: 'flex', flexDirection: 'column', height: '100vh'}}>
         <div style={{padding: '10px', backgroundColor: '#f8f9fa', borderBottom: '1px solid #dee2e6', textAlign: 'center'}}>
-          <a href={reportUrl} download="raport.html" style={{...styles.ctaButton, textDecoration: 'none'}}>
+          <a href={reportUrl} download="raport.html" onClick={() => trackEvent('download_report_click')} style={{...styles.ctaButton, textDecoration: 'none'}}>
             Pobierz Raport (plik HTML)
           </a>
           {currentReportId && (
@@ -215,21 +244,19 @@ function App() {
     );
   }
 
-  // Jeśli nie ma danych do podglądu, pokaż nową stronę powitalną
   if (!previewData) {
     return <LandingPage onFileChange={handleFileChangeAndPreview} isLoading={isLoading} error={error} />;
   }
 
-  // Jeśli są dane do podglądu, pokaż przepływ analizy
   return (
     <AnalysisFlow
       previewData={previewData}
       missingDataInfo={missingDataInfo}
       missingDataStrategy={missingDataStrategy}
-      setMissingDataStrategy={setMissingDataStrategy}
+      setMissingDataStrategy={handleMissingDataChange}
       variableTypes={variableTypes}
       handleTypeChange={handleTypeChange}
-      generateReport={generateReport} // Zmienione z handlePayment
+      generateReport={generateReport}
       isButtonDisabled={isButtonDisabled}
       isLoading={isLoading}
       error={error}
@@ -239,7 +266,10 @@ function App() {
 
 const LandingPage = ({ onFileChange, isLoading, error }) => {
   const fileInputRef = React.useRef(null);
-  const handleButtonClick = () => fileInputRef.current.click();
+  const handleButtonClick = () => {
+    trackEvent('start_analysis_click');
+    fileInputRef.current.click();
+  };
 
   const copyEmailToClipboard = () => {
     navigator.clipboard.writeText('zwrotsrodkowanaliza@gmail.com');
@@ -257,7 +287,6 @@ const LandingPage = ({ onFileChange, isLoading, error }) => {
         <p style={styles.subtitle}>Nasze narzędzie służy do wstępnej eksploracji danych. Automatycznie przeprowadza podstawowe testy statystyczne między zmiennymi i generuje raport, który może być punktem wyjścia do dalszej, pogłębionej analizy. To narzędzie do szerokiego spojrzenia na dane, a nie wyciągania ostatecznych wniosków.</p>
       </header>
 
-      {/* === NOWA SEKCJA Z KLUCZOWYMI INFORMACJAMI === */}
       <section style={styles.keyInfoSection}>
         <div style={styles.keyInfoCard}>
           <h3 style={styles.h3}>Wymagany Format</h3>
@@ -373,19 +402,17 @@ const AnalysisFlow = ({ previewData, missingDataInfo, missingDataStrategy, setMi
     <div style={styles.analysisBox}>
       <h2 style={styles.h2}>Krok 2: Skonfiguruj swoją analizę</h2>
 
-      {/* NEW SECTION FOR VARIABLE TYPE EXPLANATIONS */}
       <div style={styles.infoBox}>
         <h3 style={styles.h3}>Wybór Typów Zmiennych: Przewodnik</h3>
         <p>Poprawne zdefiniowanie typów zmiennych jest kluczowe dla prawidłowej analizy statystycznej. Poniżej znajdziesz wyjaśnienie każdej kategorii, które pomoże Ci dokonać właściwego wyboru:</p>
         <ul style={styles.list}>
-          <li><strong>Pomiń (np. ID, Tekst, Data):</strong> Zmienna zostanie całkowicie zignorowana w procesie analizy. Wybierz tę opcję dla zmiennych, które służą jedynie jako identyfikatory (np. ID klienta, numer transakcji), zawierają wolny tekst (np. opisy produktów, komentarze), lub są datami, które nie będą analizowane jako zmienne czasowe.</li>
-          <li><strong>Ciągła (np. Wiek, Przychód, Temperatura):</strong> Zmienna numeryczna, która może przyjmować dowolną wartość w danym zakresie, często z nieskończoną liczbą możliwych wartości między dwoma punktami (np. liczby rzeczywiste). Reprezentuje pomiary, takie jak wiek, wzrost, waga, dochód, temperatura, ciśnienie krwi. Dla tych zmiennych stosuje się testy korelacji (np. Pearsona) lub porównania średnich (np. t-Studenta, ANOVA).</li>
-          <li><strong>Binarna (2 grupy, np. Płeć, Status_Klienta: Aktywny/Nieaktywny):</strong> Zmienna kategoryczna, która może przyjmować tylko dwie, wzajemnie wykluczające się wartości. Przykłady to płeć (Mężczyzna/Kobieta), status (Tak/Nie, Prawda/Fałsz), obecność cechy (Posiada/Nie posiada). Analiza często polega na porównywaniu proporcji lub średnich między tymi dwiema grupami.</li>
-          <li><strong>Nominalna (Kategoryczna, 3+ grup, np. Miasto, Kolor Oczu, Narodowość):</strong> Zmienna kategoryczna, która może przyjmować trzy lub więcej wartości, ale bez naturalnego porządku, hierarchii czy rangi między nimi. Wartości te są jedynie etykietami. Przykłady to miasto zamieszkania, kolor oczu, narodowość, typ produktu. Dla tych zmiennych często stosuje się testy chi-kwadrat do badania zależności między kategoriami.</li>
-          <li><strong>Porządkowa (kolejność, np. Wykształcenie, Ocena Satysfakcji: Niska/Średnia/Wysoka):</strong> Zmienna kategoryczna, która może przyjmować trzy lub więcej wartości, ale z wyraźnym porządkiem, hierarchią lub rangą. Odległości między kategoriami nie muszą być równe, ale kolejność jest znacząca. Przykłady to poziom wykształcenia (podstawowe, średnie, wyższe), ocena satysfakcji (bardzo niska, niska, średnia, wysoka, bardzo wysoka), stopień wojskowy. Dla tych zmiennych stosuje się testy nieparametryczne, które uwzględniają porządek, ale nie zakładają rozkładu normalnego (np. korelacja Spearmana).</li>
+          <li><strong>Pomiń (np. ID, Tekst, Data):</strong> Zmienna zostanie całkowicie zignorowana w procesie analizy...</li>
+          <li><strong>Ciągła (np. Wiek, Przychód, Temperatura):</strong> Zmienna numeryczna...</li>
+          <li><strong>Binarna (2 grupy, np. Płeć, Status_Klienta: Aktywny/Nieaktywny):</strong> Zmienna kategoryczna...</li>
+          <li><strong>Nominalna (Kategoryczna, 3+ grup, np. Miasto, Kolor Oczu, Narodowość):</strong> Zmienna kategoryczna...</li>
+          <li><strong>Porządkowa (kolejność, np. Wykształcenie, Ocena Satysfakcji: Niska/Średnia/Wysoka):</strong> Zmienna kategoryczna...</li>
         </ul>
       </div>
-      {/* END NEW SECTION */}
 
       {missingDataInfo?.has_missing_data && (
         <div style={styles.missingDataPanel}>
@@ -489,7 +516,7 @@ const styles = {
     textAlign: 'left',
   },
   infoBox: {
-    backgroundColor: '#e7f3fe', // A light blue
+    backgroundColor: '#e7f3fe',
     border: '1px solid #b3d4fc',
     borderRadius: '8px',
     padding: '20px',
@@ -505,7 +532,7 @@ const styles = {
   voluntaryPaymentBanner: {
     marginTop: '20px',
     padding: '20px',
-    backgroundColor: '#e6ffe6', // Light green background
+    backgroundColor: '#e6ffe6',
     border: '1px solid #a3e9a4',
     borderRadius: '8px',
     textAlign: 'center',
