@@ -32,18 +32,20 @@ function App() {
   const [currentReportId, setCurrentReportId] = useState(null); // Nowy stan dla ID raportu
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [voluntaryPaymentStatus, setVoluntaryPaymentStatus] = useState('idle'); // Nowy stan dla statusu dobrowolnej płatności
+  const [voluntaryPaymentStatus, setVoluntaryPaymentStatus] = useState('idle');
+  const [customAmount, setCustomAmount] = useState('5'); // Stan dla dynamicznej kwoty, domyślnie 5 PLN
 
   // --- EFEKT DO OBSŁUGI POWROTU ZE STRIPE (dla dobrowolnej płatności) ---
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const paymentStatus = query.get('payment_status');
-    const reportIdFromUrl = query.get('report_id');
+    // Poprawka: Pobierz ID raportu ze ścieżki URL, np. z "/raport/uuid-goes-here"
+    const reportIdFromUrl = window.location.pathname.split('/raport/')[1];
 
     if (reportIdFromUrl && (paymentStatus === 'success' || paymentStatus === 'cancelled')) {
       setCurrentReportId(reportIdFromUrl);
       setVoluntaryPaymentStatus(paymentStatus);
-      // Wyczyść parametry z URL
+      // Wyczyść parametry z URL, ale zachowaj ścieżkę
       window.history.replaceState(null, '', `/raport/${reportIdFromUrl}`);
     }
   }, []);
@@ -132,13 +134,20 @@ function App() {
   };
 
   // --- Obsługa dobrowolnej płatności po wygenerowaniu raportu ---
-  const handleVoluntaryPayment = async (amount = 300) => { // Domyślnie 300 groszy = 3 PLN
+  const handleVoluntaryPayment = async () => {
+    const amountInPln = parseFloat(customAmount);
+    if (isNaN(amountInPln) || amountInPln < 1) {
+      setError("Proszę wpisać poprawną kwotę, minimum 1 PLN.");
+      return;
+    }
+    const amountInGroszy = Math.round(amountInPln * 100);
+
     if (!currentReportId) {
       setError("Brak ID raportu do powiązania z płatnością.");
       return;
     }
     setIsLoading(true);
-    setError("");
+    setError(""); // Wyczyszczenie poprzednich błędów przed próbą płatności
 
     try {
       const response = await fetch(VOLUNTARY_PAYMENT_URL, {
@@ -146,7 +155,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ report_id: currentReportId, amount: amount }),
+        body: JSON.stringify({ report_id: currentReportId, amount: amountInGroszy }),
       });
 
       if (!response.ok) {
@@ -175,18 +184,24 @@ function App() {
             <div style={styles.voluntaryPaymentBanner}>
               <h3>Jesteś zadowolony z naszej analizy? Wesprzyj nas!</h3>
               <p>To narzędzie jest w fazie MVP i udostępniamy je bezpłatnie. Korzystasz z niego jako <strong>pierwszy użytkownik</strong>. Jeśli raport okazał się dla Ciebie użyteczny, będziemy wdzięczni za dobrowolną wpłatę.</p>
-              <p>Sugerowana kwota to <strong>od 3 zł</strong> (Stripe pobiera ok. 1 zł prowizji za transakcję).</p>
-              {voluntaryPaymentStatus === 'success' && <p style={{color: 'green'}}>Dziękujemy za wsparcie!</p>}
-              {voluntaryPaymentStatus === 'cancelled' && <p style={{color: 'orange'}}>Płatność anulowana. Możesz spróbować ponownie.</p>}
-              <button onClick={() => handleVoluntaryPayment(300)} style={{...styles.ctaButton, backgroundColor: '#6772e5', marginRight: '10px'}}>
-                Wpłać 3 zł
-              </button>
-              <button onClick={() => handleVoluntaryPayment(500)} style={{...styles.ctaButton, backgroundColor: '#6772e5', marginRight: '10px'}}>
-                Wpłać 5 zł
-              </button>
-              <button onClick={() => handleVoluntaryPayment(1000)} style={{...styles.ctaButton, backgroundColor: '#6772e5'}}>
-                Wpłać 10 zł
-              </button>
+              <p>Minimalna kwota wpłaty to <strong>1 zł</strong> (Stripe pobiera ok. 1 zł prowizji za transakcję).</p>
+              {voluntaryPaymentStatus === 'success' && <p style={{color: 'green', fontWeight: 'bold'}}>Dziękujemy za wsparcie! Twoja transakcja została pomyślnie zakończona.</p>}
+              {voluntaryPaymentStatus === 'cancelled' && <p style={{color: 'orange'}}>Płatność anulowana. Możesz spróbować ponownie w dowolnym momencie.</p>}
+              
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '15px', gap: '10px' }}>
+                <input 
+                  type="number"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                  style={{...styles.input, width: '100px', textAlign: 'right', fontSize: '1.2rem'}}
+                  min="1"
+                  placeholder="PLN"
+                />
+                <button onClick={handleVoluntaryPayment} style={{...styles.ctaButton, backgroundColor: '#6772e5', padding: '12px 20px', fontSize: '1.1rem'}} disabled={isLoading}>
+                  {isLoading ? 'Przetwarzanie...' : 'Wesprzyj nas'}
+                </button>
+              </div>
+              {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
             </div>
           )}
         </div>
@@ -486,6 +501,7 @@ const styles = {
   table: { width: '100%', borderCollapse: 'collapse', marginTop: '20px' },
   th: { padding: '12px', border: '1px solid #ddd', backgroundColor: '#f2f2f2', textAlign: 'left' },
   td: { padding: '12px', border: '1px solid #ddd', verticalAlign: 'top' },
+  input: { padding: '10px', border: '1px solid #ccc', borderRadius: '5px', fontSize: '1rem' },
   voluntaryPaymentBanner: {
     marginTop: '20px',
     padding: '20px',

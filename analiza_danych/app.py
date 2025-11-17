@@ -106,10 +106,13 @@ async def parse_preview(file: UploadFile = File(...)):
 async def create_voluntary_payment_session(
     request: Request,
     report_id: str = Body(..., embed=True),
-    amount: Optional[int] = Body(300, embed=True) # Domyślnie 3 PLN
+    amount: int = Body(..., embed=True)
 ):
     if not stripe.api_key:
         raise HTTPException(status_code=500, detail="Klucz API Stripe nie jest skonfigurowany.")
+
+    if amount < 100:  # Minimalna kwota to 1 PLN (100 groszy)
+        raise HTTPException(status_code=400, detail="Minimalna kwota wpłaty to 1 PLN.")
 
     # Dynamiczne określanie URL frontendu na podstawie nagłówka Origin
     origin = request.headers.get('origin')
