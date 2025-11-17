@@ -126,7 +126,7 @@ async def create_voluntary_payment_session(
 
         # Utwórz sesję płatności w Stripe
         session = stripe.checkout.Session.create(
-            payment_method_types=['blik', 'p24'],
+            payment_method_types=['blik'],
             line_items=[{
                 'price_data': {
                     'currency': 'pln',
